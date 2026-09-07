@@ -10,6 +10,7 @@ import 'package:immich_mobile/providers/infrastructure/settings.provider.dart';
 import 'package:immich_mobile/providers/network.provider.dart';
 import 'package:immich_mobile/utils/url_helper.dart';
 import 'package:immich_mobile/widgets/settings/networking_settings/external_network_preference.dart';
+import 'package:immich_mobile/widgets/settings/networking_settings/home_link_settings.dart';
 import 'package:immich_mobile/widgets/settings/networking_settings/local_network_preference.dart';
 import 'package:immich_ui/immich_ui.dart';
 
@@ -127,6 +128,11 @@ class NetworkingSettings extends HookConsumerWidget {
             ),
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.only(top: 10.0),
+          child: Divider(color: context.colorScheme.surfaceContainerHighest),
+        ),
+        const HomeLinkSettings(),
         Padding(
           padding: const EdgeInsets.only(top: 10.0),
           child: Divider(color: context.colorScheme.surfaceContainerHighest),

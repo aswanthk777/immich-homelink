@@ -14,6 +14,7 @@ import 'package:immich_mobile/providers/background_sync.provider.dart';
 import 'package:immich_mobile/repositories/auth.repository.dart';
 import 'package:immich_mobile/repositories/auth_api.repository.dart';
 import 'package:immich_mobile/services/api.service.dart';
+import 'package:immich_mobile/services/home_link.service.dart';
 import 'package:immich_mobile/services/network.service.dart';
 import 'package:logging/logging.dart';
 import 'package:openapi/api.dart';
@@ -25,6 +26,7 @@ final authServiceProvider = Provider(
     ref.watch(apiServiceProvider),
     ref.watch(networkServiceProvider),
     ref.watch(backgroundSyncProvider),
+    ref.watch(homeLinkServiceProvider),
   ),
 );
 
@@ -34,6 +36,7 @@ class AuthService {
   final ApiService _apiService;
   final NetworkService _networkService;
   final BackgroundSyncManager _backgroundSyncManager;
+  final HomeLinkService _homeLink;
   final _log = Logger("AuthService");
 
   AuthService(
@@ -42,6 +45,7 @@ class AuthService {
     this._apiService,
     this._networkService,
     this._backgroundSyncManager,
+    this._homeLink,
   );
 
   /// Validates the provided server URL by resolving and setting the endpoint.
@@ -53,6 +57,8 @@ class AuthService {
   ///
   /// Throws an exception if the URL cannot be resolved or set.
   Future<String> validateServerUrl(String url) async {
+    // Home Link: the login-page URL check must also go through the tunnel when away from home.
+    await _homeLink.ensureLink();
     final validUrl = await _apiService.resolveAndSetEndpoint(url);
     await _apiService.setDeviceInfoHeader();
     await Store.put(StoreKey.serverUrl, validUrl);
@@ -139,6 +145,10 @@ class AuthService {
   }
 
   Future<String?> setOpenApiServiceEndpoint() async {
+    // Home Link: get the server reachable first (home network or per-app tunnel). Runs at
+    // splash, on resume and inside the background worker, so it is the one place to do it.
+    await _homeLink.ensureLink();
+
     final enable = _authRepository.getEndpointSwitchingFeature();
     if (!enable) {
       return null;

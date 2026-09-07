@@ -19,6 +19,9 @@
   <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
   <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
   <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+  <!-- Home Link: keep the background worker alive as a foreground service while the tunnel is used -->
+  <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+  <uses-permission android:name="android.permission.CAMERA" />
 
   <!-- Foreground service permission -->
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -152,6 +155,15 @@
              This is used by the Flutter tool to
     generate GeneratedPluginRegistrant.java -->
     <meta-data android:name="flutterEmbedding" android:value="2" />
+
+    <!-- Home Link: QR scanner for the WireGuard config (zxing) -->
+    <activity
+      android:name=".homelink.PortraitCaptureActivity"
+      android:exported="false"
+      android:screenOrientation="portrait"
+      android:stateNotNeeded="true"
+      android:theme="@style/zxing_CaptureTheme"
+      android:windowSoftInputMode="stateAlwaysHidden" />
 
     <!-- Widgets -->
     <receiver

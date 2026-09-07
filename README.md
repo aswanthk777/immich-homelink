@@ -1,3 +1,11 @@
+> ## This is *Immich Home Link*, a fork of Immich
+> The Android app in this repository carries a built-in **per-app WireGuard® tunnel** to your home
+> network: reach your self-hosted Immich from anywhere without an always-on VPN, no cloud relay, and
+> background backups that run only while the phone is on the charger.
+> **Read [HOME_LINK.md](HOME_LINK.md) for what it does, how to set it up, and how it works.**
+> Everything below is the upstream Immich README. Server, web and CLI are unchanged. Credits and
+> license: [HOME_LINK.md → Credits and license](HOME_LINK.md#credits-and-license). Not affiliated with the Immich project.
+
 <p align="center"> 
   <br/>
   <a href="https://opensource.org/license/agpl-v3"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg?color=3F51B5&style=for-the-badge&label=License&logoColor=000000&labelColor=ececec" alt="License: AGPLv3"></a>

@@ -6,7 +6,9 @@ import 'package:immich_mobile/data/db/main/database.dart';
 import 'package:immich_mobile/domain/services/store.service.dart';
 import 'package:immich_mobile/infrastructure/repositories/store.repository.dart';
 import 'package:immich_mobile/models/auth/auxilary_endpoint.model.dart';
+import 'package:immich_mobile/platform/home_link_api.g.dart';
 import 'package:immich_mobile/services/auth.service.dart';
+import 'package:immich_mobile/services/home_link.service.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openapi/api.dart';
 
@@ -28,7 +30,14 @@ void main() {
     apiService = MockApiService();
     networkService = MockNetworkService();
     backgroundSyncManager = MockBackgroundSyncManager();
-    sut = AuthService(authApiRepository, authRepository, apiService, networkService, backgroundSyncManager);
+    sut = AuthService(
+      authApiRepository,
+      authRepository,
+      apiService,
+      networkService,
+      backgroundSyncManager,
+      HomeLinkService(HomeLinkHostApi()),
+    );
 
     registerFallbackValue(Uri());
   });
@@ -79,7 +88,7 @@ void main() {
 
       when(() => apiService.resolveAndSetEndpoint(testUrl)).thenThrow(Exception('Invalid URL'));
 
-      expect(() async => await sut.validateServerUrl(testUrl), throwsA(isA<Exception>()));
+      await expectLater(sut.validateServerUrl(testUrl), throwsA(isA<Exception>()));
 
       verify(() => apiService.resolveAndSetEndpoint(testUrl)).called(1);
       verifyNever(() => apiService.setDeviceInfoHeader());
@@ -90,7 +99,7 @@ void main() {
 
       when(() => apiService.resolveAndSetEndpoint(testUrl)).thenThrow(Exception('Server is not reachable'));
 
-      expect(() async => await sut.validateServerUrl(testUrl), throwsA(isA<Exception>()));
+      await expectLater(sut.validateServerUrl(testUrl), throwsA(isA<Exception>()));
 
       verify(() => apiService.resolveAndSetEndpoint(testUrl)).called(1);
       verifyNever(() => apiService.setDeviceInfoHeader());

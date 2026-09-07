@@ -2,7 +2,10 @@ package app.alextran.immich.background
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
 import android.os.Build
 import android.os.Handler
@@ -10,11 +13,19 @@ import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.work.ForegroundInfo
 import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
 import app.alextran.immich.MainActivity
 import app.alextran.immich.R
+import app.alextran.immich.homelink.HomeLinkEngine
+import app.alextran.immich.homelink.HomeLinkState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
@@ -57,6 +68,30 @@ class BackgroundWorker(context: Context, params: WorkerParameters) :
 
   private var foregroundFuture: ListenableFuture<Void>? = null
 
+  private val linkScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+  private var requiresCharging = false
+  private var unplugReceiver: BroadcastReceiver? = null
+
+  /** Unplugged mid-backup: stop right away (tunnel included) and re-arm the plug-in trigger. */
+  private fun registerUnplugReceiver() {
+    val receiver = object : BroadcastReceiver() {
+      override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action != Intent.ACTION_POWER_DISCONNECTED || isComplete) return
+        Log.i(TAG, "Charger disconnected, stopping the backup until the next charge")
+        BackgroundWorkerApiImpl.enqueueChargeTrigger(ctx)
+        close()
+      }
+    }
+    ContextCompat.registerReceiver(ctx, receiver, IntentFilter(Intent.ACTION_POWER_DISCONNECTED), ContextCompat.RECEIVER_NOT_EXPORTED)
+    unplugReceiver = receiver
+  }
+
+  private fun unregisterUnplugReceiver() {
+    unplugReceiver?.let { runCatching { ctx.unregisterReceiver(it) } }
+    unplugReceiver = null
+  }
+
   companion object {
     private const val NOTIFICATION_CHANNEL_ID = "immich::background_worker::notif"
     private const val NOTIFICATION_ID = 100
@@ -78,6 +113,16 @@ class BackgroundWorker(context: Context, params: WorkerParameters) :
     try {
       Log.i(TAG, "Starting background upload worker")
 
+      // "Only while charging": nothing runs on battery. Arm the plug-in trigger and go back to sleep.
+      requiresCharging = BackgroundWorkerPreferences(ctx).getSettings().requiresCharging
+      if (requiresCharging && !BackgroundWorkerApiImpl.isPluggedIn(ctx)) {
+        Log.i(TAG, "Phone is on battery, backup waits for the charger")
+        BackgroundWorkerApiImpl.enqueueChargeTrigger(ctx)
+        activeWorker.compareAndSet(this, null)
+        return Futures.immediateFuture(Result.success())
+      }
+      if (requiresCharging) registerUnplugReceiver()
+
       if (!loader.initialized()) {
         loader.startInitialization(ctx)
       }
@@ -91,36 +136,58 @@ class BackgroundWorker(context: Context, params: WorkerParameters) :
       val notificationConfig = BackgroundWorkerPreferences(ctx).getNotificationConfig()
       showNotification(notificationConfig.first, notificationConfig.second)
 
-      loader.ensureInitializationCompleteAsync(ctx, null, Handler(Looper.getMainLooper())) {
-        if (isStopped || isComplete) {
-          return@ensureInitializationCompleteAsync
+      // Home Link: reach the server first (home network, else the per-app tunnel) so the whole
+      // Flutter side just sees a reachable server. No link -> retry later with backoff.
+      if (HomeLinkEngine.isEnabled) {
+        linkScope.launch {
+          waitForForegroundPromotion(3000)
+          val status = runCatching { HomeLinkEngine.acquire("bg", 30_000) }.getOrNull()
+          Log.i(TAG, "Home Link for background worker: ${status?.state} ${status?.detail ?: ""}")
+          val usable = status != null && (status.state == HomeLinkState.LAN || status.state == HomeLinkState.TUNNEL ||
+            // VPN consent missing: nothing to wait for, let the upload fail fast on its own
+            (status.state == HomeLinkState.ERROR && status.detail?.contains("permission") == true))
+          Handler(Looper.getMainLooper()).post {
+            if (isStopped || isComplete) return@post
+            if (usable) startFlutterEngine() else complete(Result.retry())
+          }
         }
-
-        engine = FlutterEngine(ctx)
-        FlutterEngineCache.getInstance().put(BackgroundWorkerApiImpl.ENGINE_CACHE_KEY, engine!!)
-
-        // Register custom plugins
-        MainActivity.registerPlugins(ctx, engine!!)
-        flutterApi =
-          BackgroundWorkerFlutterApi(binaryMessenger = engine!!.dartExecutor.binaryMessenger)
-        BackgroundWorkerBgHostApi.setUp(
-          binaryMessenger = engine!!.dartExecutor.binaryMessenger,
-          api = this
-        )
-
-        engine!!.dartExecutor.executeDartEntrypoint(
-          DartExecutor.DartEntrypoint(
-            loader.findAppBundlePath(),
-            "package:immich_mobile/domain/services/background_worker.service.dart",
-            "backgroundSyncNativeEntrypoint"
-          )
-        )
+      } else {
+        startFlutterEngine()
       }
 
       return completionHandler
     } catch (error: Throwable) {
+      unregisterUnplugReceiver()
       activeWorker.compareAndSet(this, null)
       throw error
+    }
+  }
+
+  private fun startFlutterEngine() {
+    loader.ensureInitializationCompleteAsync(ctx, null, Handler(Looper.getMainLooper())) {
+      if (isStopped || isComplete) {
+        return@ensureInitializationCompleteAsync
+      }
+
+      engine = FlutterEngine(ctx)
+      FlutterEngineCache.getInstance().put(BackgroundWorkerApiImpl.ENGINE_CACHE_KEY, engine!!)
+
+      // Register custom plugins
+      MainActivity.registerPlugins(ctx, engine!!)
+      flutterApi =
+        BackgroundWorkerFlutterApi(binaryMessenger = engine!!.dartExecutor.binaryMessenger)
+      BackgroundWorkerBgHostApi.setUp(
+        binaryMessenger = engine!!.dartExecutor.binaryMessenger,
+        api = this
+      )
+
+      engine!!.dartExecutor.executeDartEntrypoint(
+        DartExecutor.DartEntrypoint(
+          loader.findAppBundlePath(),
+          "package:immich_mobile/domain/services/background_worker.service.dart",
+          "backgroundSyncNativeEntrypoint"
+        )
+      )
     }
   }
 
@@ -237,6 +304,10 @@ class BackgroundWorker(context: Context, params: WorkerParameters) :
     FlutterEngineCache.getInstance().remove(BackgroundWorkerApiImpl.ENGINE_CACHE_KEY)
     activeWorker.compareAndSet(this, null)
     waitForForegroundPromotion()
+    HomeLinkEngine.release("bg")
+    HomeLinkEngine.release("app")
+    linkScope.cancel()
+    unregisterUnplugReceiver()
     completionHandler.set(success)
   }
 
@@ -253,11 +324,11 @@ class BackgroundWorker(context: Context, params: WorkerParameters) :
    * https://android-review.googlesource.com/c/platform/frameworks/support/+/1262743
    * Wait for a short period of time for the foreground promotion to complete before completing the worker
    */
-  private fun waitForForegroundPromotion() {
+  private fun waitForForegroundPromotion(timeoutMs: Long = 500) {
     val foregroundFuture = this.foregroundFuture
     if (foregroundFuture != null && !foregroundFuture.isCancelled && !foregroundFuture.isDone) {
       try {
-        foregroundFuture.get(500, TimeUnit.MILLISECONDS)
+        foregroundFuture.get(timeoutMs, TimeUnit.MILLISECONDS)
       } catch (e: Exception) {
         // ignored, there is nothing to be done
       }
