@@ -1,143 +1,113 @@
-> ## This is *Immich Home Link*, a fork of Immich
-> The Android app in this repository carries a built-in **per-app WireGuard® tunnel** to your home
-> network: reach your self-hosted Immich from anywhere without an always-on VPN, no cloud relay, and
-> background backups that run only while the phone is on the charger.
-> **Read [HOME_LINK.md](HOME_LINK.md) for what it does, how to set it up, and how it works.**
-> Everything below is the upstream Immich README. Server, web and CLI are unchanged. Credits and
-> license: [HOME_LINK.md → Credits and license](HOME_LINK.md#credits-and-license). Not affiliated with the Immich project.
+<p align="center">
+  <img src="design/immich-logo-stacked-light.svg" width="220" alt="Immich logo">
+</p>
+<h1 align="center">Immich Home Link</h1>
+<h3 align="center">The Immich Android app with a built-in, per-app WireGuard® tunnel to your home</h3>
 
-<p align="center"> 
-  <br/>
-  <a href="https://opensource.org/license/agpl-v3"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg?color=3F51B5&style=for-the-badge&label=License&logoColor=000000&labelColor=ececec" alt="License: AGPLv3"></a>
-  <a href="https://discord.immich.app">
-    <img src="https://img.shields.io/discord/979116623879368755.svg?label=Discord&logo=Discord&style=for-the-badge&logoColor=000000&labelColor=ececec" alt="Discord"/>
-  </a>
-  <br/>
-  <br/>
+<p align="center">
+  <a href="https://github.com/aswanthk777/immich-homelink/releases/latest"><img src="https://img.shields.io/github/v/release/aswanthk777/immich-homelink?style=for-the-badge&label=APK&color=3F51B5" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg?style=for-the-badge&color=3F51B5" alt="AGPL v3"></a>
+  <img src="https://img.shields.io/badge/Platform-Android%208%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android">
+  <img src="https://img.shields.io/badge/Server-unchanged-success?style=for-the-badge" alt="Server unchanged">
 </p>
 
 <p align="center">
-<img src="design/immich-logo-stacked-light.svg" width="300" title="Login With Custom URL">
-</p>
-<h3 align="center">High performance self-hosted photo and video management solution</h3>
-<br/>
-<a href="https://immich.app">
-<img src="design/immich-screenshots.png" title="Main Screenshot">
-</a>
-<br/>
-
-<p align="center">
-  <a href="readme_i18n/README_ca_ES.md">Català</a>
-  <a href="readme_i18n/README_es_ES.md">Español</a>
-  <a href="readme_i18n/README_fr_FR.md">Français</a>
-  <a href="readme_i18n/README_it_IT.md">Italiano</a>
-  <a href="readme_i18n/README_ja_JP.md">日本語</a>
-  <a href="readme_i18n/README_ko_KR.md">한국어</a>
-  <a href="readme_i18n/README_de_DE.md">Deutsch</a>
-  <a href="readme_i18n/README_nl_NL.md">Nederlands</a>
-  <a href="readme_i18n/README_tr_TR.md">Türkçe</a>
-  <a href="readme_i18n/README_zh_CN.md">简体中文</a>
-  <a href="readme_i18n/README_zh_TW.md">正體中文</a>
-  <a href="readme_i18n/README_uk_UA.md">Українська</a>
-  <a href="readme_i18n/README_ru_RU.md">Русский</a>
-  <a href="readme_i18n/README_bg_BG.md">Български</a>
-  <a href="readme_i18n/README_pt_BR.md">Português Brasileiro</a>
-  <a href="readme_i18n/README_sv_SE.md">Svenska</a>
-  <a href="readme_i18n/README_ar_JO.md">العربية</a>
-  <a href="readme_i18n/README_vi_VN.md">Tiếng Việt</a>
-  <a href="readme_i18n/README_th_TH.md">ภาษาไทย</a>
-  <a href="readme_i18n/README_ml_IN.md">മലയാളം</a>
+  <b>Reach your self-hosted Immich from anywhere.</b><br>
+  No exposed server. No reverse proxy, domain or certificate. No Tailscale or ZeroTier account.<br>
+  No always-on VPN eating the whole phone. Scan the WireGuard QR from your home box, and you're done.
 </p>
 
+---
 
-> [!WARNING]
-> ⚠️ Always follow [3-2-1](https://www.backblaze.com/blog/the-3-2-1-backup-strategy/) backup plan for your precious photos and videos!
-> 
- 
+## What this fork changes
 
-> [!NOTE]
-> You can find the main documentation, including installation guides, at https://immich.app/.
+Everything in the official Immich app is still here. On top of it, the Android app carries its own
+WireGuard tunnel and a small engine that decides *when* to use it.
 
-## Links
+| | Stock Immich | Immich Home Link |
+|---|---|---|
+| Reaching home from outside | Expose the server, or run a VPN client on the phone | **Tunnel built into the app**, nothing else needed on the phone |
+| Scope of the tunnel | Device-wide VPN, every app affected | **Only Immich's traffic** (Android per-app VPN) |
+| When the tunnel is up | Always, or manually | **Only while the app is on screen or a backup runs**; down when idle |
+| On the home Wi-Fi | Depends on your VPN setup | **Detected automatically**, talks to the server directly, tunnel stays down |
+| Server URL | Separate local / remote URLs, Wi-Fi-name switching | **One URL**, the LAN address, works everywhere |
+| Background backup away from home | Needs the VPN up in the background | **Runs only while charging**; plugging in is the trigger, app closed |
+| Battery cost while idle | VPN keepalives all day | **Zero**: no tunnel, no keepalives, no background work on battery |
+| Services involved | Your choice of relay / coordination server | **None**. One WireGuard UDP port at home, silent to strangers |
 
-- [Documentation](https://docs.immich.app/)
-- [About](https://docs.immich.app/overview/introduction)
-- [Installation](https://docs.immich.app/install/requirements)
-- [Roadmap](https://immich.app/roadmap)
-- [Demo](#demo)
-- [Features](#features)
-- [Translations](https://docs.immich.app/developer/translations)
-- [Contributing](https://docs.immich.app/overview/support-the-project)
+Your Immich **server is untouched**. Any version works, Docker or not.
 
-## Demo
+## How it behaves
 
-Access the demo [here](https://demo.immich.app). For the mobile app, you can use `https://demo.immich.app` for the `Server Endpoint URL`.
+| Situation | Home Link does |
+|---|---|
+| At home (server answers over the local network) | Direct connection. No tunnel. |
+| App open, away from home | Per-app WireGuard tunnel up, keepalive while in use. |
+| App closed, on battery | Tunnel down within 20 s. Nothing runs in the background. |
+| App closed, on the charger | Photos taken during the day upload through the tunnel, then it drops. Unplug = stop. |
+| Wi-Fi ↔ mobile data | Re-evaluated in 2 s; arriving home drops the tunnel, leaving home brings it up. |
 
-### Login credentials
+Full behaviour table, internals and design notes: **[HOME_LINK.md](HOME_LINK.md)**.
 
-| Email           | Password |
-| --------------- | -------- |
-| demo@immich.app | demo     |
+## Quick start
 
-## Features
+**1. Install the app** from the [latest release](https://github.com/aswanthk777/immich-homelink/releases/latest)
+(universal APK, Android 8+). It installs next to the Play Store app, not over it.
 
-| Features                                     | Mobile | Web |
-| :------------------------------------------- | ------ | --- |
-| Upload and view videos and photos            | Yes    | Yes |
-| Auto backup when the app is opened           | Yes    | N/A |
-| Prevent duplication of assets                | Yes    | Yes |
-| Selective album(s) for backup                | Yes    | N/A |
-| Download photos and videos to local device   | Yes    | Yes |
-| Multi-user support                           | Yes    | Yes |
-| Album and Shared albums                      | Yes    | Yes |
-| Scrubbable/draggable scrollbar               | Yes    | Yes |
-| Support raw formats                          | Yes    | Yes |
-| Metadata view (EXIF, map)                    | Yes    | Yes |
-| Search by metadata, objects, faces, and CLIP | Yes    | Yes |
-| Administrative functions (user management)   | No     | Yes |
-| Background backup                            | Yes    | N/A |
-| Virtual scroll                               | Yes    | Yes |
-| OAuth support                                | Yes    | Yes |
-| API Keys                                     | N/A    | Yes |
-| LivePhoto/MotionPhoto backup and playback    | Yes    | Yes |
-| Support 360 degree image display             | No     | Yes |
-| User-defined storage structure               | Yes    | Yes |
-| Public Sharing                               | Yes    | Yes |
-| Archive and Favorites                        | Yes    | Yes |
-| Global Map                                   | Yes    | Yes |
-| Partner Sharing                              | Yes    | Yes |
-| Facial recognition and clustering            | Yes    | Yes |
-| Memories (x years ago)                       | Yes    | Yes |
-| Offline support                              | Yes    | No  |
-| Read-only gallery                            | Yes    | Yes |
-| Stacked Photos                               | Yes    | Yes |
-| Tags                                         | No     | Yes |
-| Folder View                                  | Yes    | Yes |
+**2. Give your phone a WireGuard peer at home.** Any Linux box on the LAN works, a Raspberry Pi is plenty.
+If you already run WireGuard, just add a peer whose `AllowedIPs` include your LAN. If not, the bundled
+helper sets up a dedicated interface in one go and prints a QR code per phone:
 
-## Translations
+```bash
+sudo PUBLIC=home.example.com LAN_CIDR=192.168.1.0/24 ./mobile/scripts/homelink-server.sh init
+sudo ./mobile/scripts/homelink-server.sh add "My phone"      # prints wg-quick config + QR
+```
 
-Read more about translations [here](https://docs.immich.app/developer/translations).
+Forward **UDP 51821** on your router to that box. That is the only thing exposed, and WireGuard does
+not answer anything that isn't your phone's key. Step-by-step WireGuard instructions, including keys
+generated on the phone so the private key never leaves it: [HOME_LINK.md → WireGuard from scratch](HOME_LINK.md#wireguard-from-scratch-step-by-step).
 
-<a href="https://hosted.weblate.org/engage/immich/">
-<img src="https://hosted.weblate.org/widget/immich/immich/multi-auto.svg" alt="Translation status" />
-</a>
+**3. In the app:** Settings → Networking → **Home Link**
+- *Home server URL*: the server's LAN address, e.g. `http://192.168.1.10:2283`
+- *WireGuard config*: tap the QR icon and **scan** the code (or paste the text)
+- Switch **Use Home Link** on, accept Android's VPN prompt, and allow **Unrestricted battery** when the card asks (required for background backups)
 
-## Repository activity
+**4. Log in** with that same LAN URL. The card shows *Home network · direct* at home and *Tunnel* elsewhere. Done.
 
-![Activities](https://repobeats.axiom.co/api/embed/9e86d9dc3ddd137161f2f6d2e758d7863b1789cb.svg "Repobeats analytics image")
+## What we learned about Android on the way
 
-## Star history
+Two findings that also affect the official app's *Only while charging* option (documented with fixes in [HOME_LINK.md](HOME_LINK.md#android-gotchas-you-should-know)):
 
-<a href="https://star-history.com/#immich-app/immich&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=immich-app/immich&type=date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=immich-app/immich&type=date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=immich-app/immich&type=date" width="100%" />
- </picture>
-</a>
+- Phones with a **charge limit** (OnePlus 90 %, Samsung "protect battery", Pixel adaptive charging) report *not charging* while plugged in. Android's scheduler starts the backup job anyway, but WorkManager's own battery tracker kills it milliseconds later. Home Link enforces "charger connected" itself instead.
+- Without the **battery-optimisation exemption**, the upload worker never becomes a foreground service, and starting a VPN service from the background is then forbidden. Home Link warns and offers the system dialog.
 
-## Contributors
+## Building from source
 
-<a href="https://github.com/immich-app/immich/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=immich-app/immich" width="100%"/>
-</a>
+```bash
+cd open-api && bash ./bin/generate-dart-sdk.sh
+cd ../mobile && flutter pub get
+ls pigeon/*.dart | xargs -I{} dart run pigeon --input {}
+dart run easy_localization:generate -S ../i18n && dart run bin/generate_keys.dart
+dart run drift_dev make-migrations && dart run build_runner build --delete-conflicting-outputs
+flutter build apk --release
+```
+
+Details, signing and debugging: [HOME_LINK.md → Building](HOME_LINK.md#building-from-source).
+
+## Status
+
+- Android only (per-app VPN is an Android feature). iOS is not planned.
+- Tested end to end on a OnePlus running Android 16: LAN detection, tunnel, login through the tunnel, multi-GB backups over the tunnel, charger-triggered background backup with the app closed and swiped away, unplug behaviour.
+- Reports from other devices and vendors are very welcome: open an issue with `adb logcat -s HomeLink BackgroundWorker ChargeTrigger`.
+- Discussion with the Immich team about upstreaming: [immich-app/immich#31315](https://github.com/immich-app/immich/discussions/31315).
+
+## Credits and license
+
+Built on **[Immich](https://github.com/immich-app/immich)** by the Immich team and contributors, licensed under the
+**GNU AGPL v3**, and so is this fork in its entirety ([LICENSE](LICENSE)). Please consider [supporting Immich](https://immich.app/).
+The in-app tunnel uses the **[wireguard-android](https://git.zx2c4.com/wireguard-android/)** library (Apache 2.0).
+*WireGuard* and the *WireGuard* logo are registered trademarks of Jason A. Donenfeld. QR scanning by
+[ZXing Android Embedded](https://github.com/journeyapps/zxing-android-embedded) (Apache 2.0).
+Not affiliated with or endorsed by the Immich or WireGuard projects.
+
+The original Immich README, with the project's own documentation links, is kept at [README.upstream.md](README.upstream.md).
