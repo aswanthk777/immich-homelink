@@ -1,6 +1,9 @@
 package app.alextran.immich.background
 
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import android.provider.MediaStore
 import android.util.Log
 import androidx.work.BackoffPolicy
@@ -31,6 +34,12 @@ class BackgroundWorkerApiImpl(context: Context) : BackgroundWorkerFgHostApi {
     BackgroundWorkerPreferences(ctx).updateSettings(settings)
     enqueueMediaObserver(ctx)
     enqueuePeriodicWorker(ctx)
+    // A pending upload worker keeps the constraints it was enqueued with (KEEP policy): drop a
+    // stale one (unless it is running) and, with "only while charging", arm the plug-in trigger.
+    if (!isBackgroundWorkerRunning()) {
+      WorkManager.getInstance(ctx).cancelUniqueWork(BACKGROUND_WORKER_NAME)
+    }
+    if (settings.requiresCharging) enqueueChargeTrigger(ctx) else cancelChargeTrigger(ctx)
   }
 
   override fun disable() {
@@ -38,6 +47,7 @@ class BackgroundWorkerApiImpl(context: Context) : BackgroundWorkerFgHostApi {
       cancelUniqueWork(OBSERVER_WORKER_NAME)
       cancelUniqueWork(BACKGROUND_WORKER_NAME)
       cancelUniqueWork(PERIODIC_WORKER_NAME)
+      cancelUniqueWork(CHARGE_TRIGGER_NAME)
     }
     Log.i(TAG, "Cancelled background upload tasks")
   }
@@ -46,6 +56,7 @@ class BackgroundWorkerApiImpl(context: Context) : BackgroundWorkerFgHostApi {
     private const val BACKGROUND_WORKER_NAME = "immich/BackgroundWorkerV1"
     private const val OBSERVER_WORKER_NAME = "immich/MediaObserverV1"
     private const val PERIODIC_WORKER_NAME = "immich/PeriodicBackgroundWorkerV1"
+    private const val CHARGE_TRIGGER_NAME = "immich/ChargeTriggerV1"
     const val ENGINE_CACHE_KEY = "immich::background_worker::engine"
 
 
@@ -95,6 +106,12 @@ class BackgroundWorkerApiImpl(context: Context) : BackgroundWorkerFgHostApi {
     }
 
     fun enqueueBackgroundWorker(ctx: Context) {
+      // No WorkManager charging constraint here on purpose: phones with a charge limit (OnePlus
+      // stops at 90 %) report "not charging" while plugged in, and WorkManager's in-process
+      // tracker would then kill the worker the moment it is promoted to a foreground service,
+      // even though JobScheduler (which counts "plugged and not draining" as charging) started it.
+      // "Only while charging" is enforced by the worker itself (plugged-in check + unplug
+      // receiver) and plug-in wake-ups come from the charge trigger below.
       val constraints = Constraints.Builder().setRequiresBatteryNotLow(true).build()
       val work = OneTimeWorkRequestBuilder<BackgroundWorker>()
         .setConstraints(constraints)
@@ -104,6 +121,28 @@ class BackgroundWorkerApiImpl(context: Context) : BackgroundWorkerFgHostApi {
         .enqueueUniqueWork(BACKGROUND_WORKER_NAME, ExistingWorkPolicy.KEEP, work)
 
       Log.i(TAG, "Enqueued background worker with name: $BACKGROUND_WORKER_NAME")
+    }
+
+    /**
+     * Sits in JobScheduler until the phone is on a charger (JobScheduler's notion survives a
+     * charge limit), then starts the upload worker. Armed whenever an upload was skipped or cut
+     * short because the phone was on battery, so plugging in is what triggers the backup.
+     */
+    fun enqueueChargeTrigger(ctx: Context) {
+      val constraints = Constraints.Builder().setRequiresCharging(true).build()
+      val work = OneTimeWorkRequestBuilder<ChargeTriggerWorker>().setConstraints(constraints).build()
+      WorkManager.getInstance(ctx).enqueueUniqueWork(CHARGE_TRIGGER_NAME, ExistingWorkPolicy.KEEP, work)
+      Log.i(TAG, "Armed charge trigger: $CHARGE_TRIGGER_NAME")
+    }
+
+    fun cancelChargeTrigger(ctx: Context) {
+      WorkManager.getInstance(ctx).cancelUniqueWork(CHARGE_TRIGGER_NAME)
+    }
+
+    /** True when a charger is connected, whatever the battery is doing (charge limits report "not charging"). */
+    fun isPluggedIn(ctx: Context): Boolean {
+      val intent = ctx.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) ?: return false
+      return intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
     }
 
     fun isBackgroundWorkerRunning(): Boolean {

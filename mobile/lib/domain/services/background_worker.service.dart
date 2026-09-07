@@ -39,7 +39,12 @@ class BackgroundWorkerFgService {
   const BackgroundWorkerFgService(this._foregroundHostApi);
 
   // TODO: Move this call to native side once old timeline is removed
-  Future<void> enable() => _foregroundHostApi.enable();
+  Future<void> enable() async {
+    // Push the current Dart-side settings (trigger delay, "only while charging") to the native
+    // scheduler first, so the workers never run with stale or default native preferences.
+    await configure();
+    await _foregroundHostApi.enable();
+  }
 
   Future<void> saveNotificationMessage(String title, String body) =>
       _foregroundHostApi.saveNotificationMessage(title, body);

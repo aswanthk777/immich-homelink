@@ -15,11 +15,27 @@ class ConnectivityApiImpl(context: Context) : ConnectivityApi {
     val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
       ?: return emptyList()
 
-    val hasWifi = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+    var hasWifi = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
       capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI_AWARE)
-    val hasCellular = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+    var hasCellular = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
     val hasVpn = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
-    val isUnmetered = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+    var isUnmetered = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+
+    // Home Link: our own per-app WireGuard tunnel is the active network while away. What matters
+    // for the "Wi-Fi only" backup rules is the network *under* it, so look through the VPN.
+    if (hasVpn && !hasWifi && !hasCellular) {
+      val underlying = connectivityManager.allNetworks.filter { n ->
+          connectivityManager.getNetworkCapabilities(n)?.let { c ->
+            !c.hasTransport(NetworkCapabilities.TRANSPORT_VPN) && c.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+          } == true
+        }
+      val caps = underlying.mapNotNull { connectivityManager.getNetworkCapabilities(it) }
+      if (caps.isNotEmpty()) {
+        hasWifi = caps.any { it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || it.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) }
+        hasCellular = !hasWifi && caps.any { it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) }
+        isUnmetered = caps.any { it.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) }
+      }
+    }
 
     return buildList {
       if (hasWifi) add(NetworkCapability.WIFI)
