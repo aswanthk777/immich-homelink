@@ -106,7 +106,7 @@ Details, signing and debugging: [HOME_LINK.md → Building](HOME_LINK.md#buildin
 - Android only (per-app VPN is an Android feature). iOS is not planned.
 - Tested end to end on a OnePlus running Android 16: LAN detection, tunnel, login through the tunnel, multi-GB backups over the tunnel, charger-triggered background backup with the app closed and swiped away, unplug behaviour.
 - Reports from other devices and vendors are very welcome: open an issue with `adb logcat -s HomeLink BackgroundWorker ChargeTrigger`.
-- Discussion with the Immich team about upstreaming: [immich-app/immich#31315](https://github.com/immich-app/immich/discussions/31315).
+- The Immich team has declined to take this upstream ([immich-app/immich#31315](https://github.com/immich-app/immich/discussions/31315)), so it lives on as an independent community fork. Contributions here are welcome.
 
 ## Credits and license
 
