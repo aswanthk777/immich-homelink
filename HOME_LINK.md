@@ -25,6 +25,7 @@ Everything else is stock Immich. The server is untouched: any Immich server work
 2. [How it behaves](#how-it-behaves)
 3. [Setting it up](#setting-it-up)
    - [Server side: a WireGuard peer for the phone](#server-side-a-wireguard-peer-for-the-phone)
+   - [WireGuard from scratch, step by step](#wireguard-from-scratch-step-by-step)
    - [Phone side](#phone-side)
 4. [Building from source](#building-from-source)
 5. [How it works inside](#how-it-works-inside)
@@ -32,7 +33,9 @@ Everything else is stock Immich. The server is untouched: any Immich server work
 7. [Troubleshooting](#troubleshooting)
 8. [Security notes](#security-notes)
 9. [What differs from upstream Immich](#what-differs-from-upstream-immich)
-10. [Credits and license](#credits-and-license)
+10. [Releases](#releases)
+11. [Contributing this upstream](#contributing-this-upstream)
+12. [Credits and license](#credits-and-license)
 
 ---
 
@@ -96,9 +99,112 @@ sudo ./homelink-server.sh list | remove <name> | status
 Prefer keys generated **on the phone** (Home Link card → *New key pair*): the private key never
 leaves the device; you only paste the public key into `add … --pubkey`.
 
+### WireGuard from scratch, step by step
+
+If you have never run WireGuard, this is the whole thing on a Debian/Ubuntu/Raspberry Pi OS box on
+your LAN. Replace `192.168.1.0/24` with your LAN, `eth0` with the box's LAN interface, and
+`home.example.com` with your public IP or DDNS name.
+
+```bash
+# 1. Install
+sudo apt install wireguard wireguard-tools qrencode
+
+# 2. Server key pair (kept on the box)
+umask 077
+wg genkey | sudo tee /etc/wireguard/server.key | wg pubkey | sudo tee /etc/wireguard/server.pub
+
+# 3. Interface config: tunnel network 10.66.78.0/24, UDP port 51821, NAT tunnel traffic onto the LAN
+sudo tee /etc/wireguard/wg1.conf >/dev/null <<CONF
+[Interface]
+Address    = 10.66.78.1/24
+ListenPort = 51821
+PrivateKey = $(sudo cat /etc/wireguard/server.key)
+PostUp     = iptables -A FORWARD -i wg1 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+PostDown   = iptables -D FORWARD -i wg1 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+CONF
+
+# 4. Forward packets between wg1 and the LAN
+echo net.ipv4.ip_forward=1 | sudo tee /etc/sysctl.d/99-wireguard.conf && sudo sysctl --system
+
+# 5. Bring it up, now and at boot
+sudo systemctl enable --now wg-quick@wg1
+sudo wg show wg1
+```
+
+Then on your **router**, forward **UDP 51821** to this box. That single port is the only thing
+exposed; WireGuard does not answer unauthenticated packets, so a port scan sees nothing.
+
+`mobile/scripts/homelink-server.sh init` does exactly steps 2–5 for you, and `add` does the
+per-phone part below.
+
+#### Adding a phone (recommended: key generated on the phone)
+
+1. In the app: Home Link card → **New key pair**. Copy the *public* key it shows (the private key
+   stays on the phone; you never need to see it).
+2. On the box, register the peer with a free tunnel address and a preshared key:
+
+   ```bash
+   PSK=$(wg genpsk)
+   sudo wg set wg1 peer <PHONE_PUBLIC_KEY> preshared-key <(echo $PSK) allowed-ips 10.66.78.2/32
+   sudo wg-quick save wg1        # persist into wg1.conf
+   ```
+
+3. Give the phone its side of the config (everything except the private key, which the app already has):
+
+   ```ini
+   [Interface]
+   PrivateKey = <paste the private key generated on the phone>
+   Address    = 10.66.78.2/32
+   DNS        = 192.168.1.1            # optional; only needed if you use a LAN hostname for the server
+
+   [Peer]
+   PublicKey           = <contents of /etc/wireguard/server.pub>
+   PresharedKey        = <the PSK from step 2>
+   Endpoint            = home.example.com:51821
+   AllowedIPs          = 192.168.1.0/24, 10.66.78.0/24
+   PersistentKeepalive = 25
+   ```
+
+   `AllowedIPs` is what the phone will route *into* the tunnel. Keep it to your LAN and the tunnel
+   net. Never put `0.0.0.0/0` here: it would send all of the app's internet traffic through home,
+   which is not needed and only slows things down.
+
+4. Paste that text into the app (Home Link card → *WireGuard config*) and fill in the private key
+   line with the one the app generated, or scan it as a QR code (below).
+
+#### Adding a phone (alternative: key generated on the box)
+
+`sudo ./homelink-server.sh add "My phone"` generates the key pair on the box, prints the complete
+wg-quick config *and* a QR code in the terminal. Scan it with the app; nothing to type. The private
+key is then known to the box as well, which is fine for a home setup but the on-phone flow is cleaner.
+
+#### Getting the config onto the phone as a QR code
+
+Any wg-quick config can be turned into a QR code. On the box:
+
+```bash
+qrencode -t ansiutf8 < phone.conf        # shows the QR in the terminal
+qrencode -o phone.png < phone.conf       # or a PNG to show on any screen
+```
+
+In the app: Home Link card → the **QR icon** next to *WireGuard config* → point the camera at the
+code. The app parses the text, shows the peer endpoint and the phone's public key in the card, and
+rejects anything that is not a WireGuard config. Delete the QR image afterwards if it contained a
+private key.
+
+#### Checking that it works
+
+- Box: `sudo wg show wg1` lists the peer with *latest handshake* a few seconds old once the phone
+  connects, and *transfer* counters moving during a backup.
+- Phone: the Home Link card shows *Tunnel* with the peer endpoint, and *Test* answers with the
+  server's ping time both direct and through the tunnel.
+- If the handshake shows but the card says *Home not reachable through the tunnel*, the problem is
+  after WireGuard: forwarding/NAT on the box (step 3–4), `AllowedIPs` on the phone, or the
+  *Home server URL* not being the LAN address.
+
 ### Phone side
 
-1. Install the APK (see [Building](#building-from-source)). It replaces the Play Store Immich app
+1. Install the APK from the [Releases](#releases) page (or [build it](#building-from-source)). It replaces the Play Store Immich app
    only if signed with the same key, so treat it as a separate app: log out of the store version or uninstall it.
 2. **Settings → Networking → Home Link**:
    - *Home server URL*: the server's LAN address, e.g. `http://192.168.1.10:2283`.
@@ -244,6 +350,37 @@ upstream files: `ImmichApp.kt`, `MainActivity.kt`, `BackgroundWorker.kt`, `Backg
 `build.gradle` / `libs.versions.toml` (wireguard-android, zxing), `auth.service.dart`,
 `background_worker.service.dart`, `backup_config.dart` (default *Charging* = on), `networking_settings.dart`.
 New files are listed in the [code map](#code-map). iOS is not supported (Android per-app VPN only).
+
+## Releases
+
+Every release on the [Releases page](https://github.com/aswanthk777/immich-homelink/releases) ships
+`app-release.apk`, a universal (all ABIs) release build signed with this fork's own key. Because the
+signing key differs from the Play Store app's, Android treats it as a different app: uninstall the
+store version first, or keep both and log in separately. Updates from one release to the next
+install over each other. The APK contains no configuration; everything is entered on the phone.
+
+## Contributing this upstream
+
+Short version: **ask first, and be upfront about how it was built.**
+
+- Immich's [CONTRIBUTING.md](CONTRIBUTING.md) asks for large changes to be discussed before any PR
+  (Discord `#contributing`, or a
+  [feature request discussion](https://github.com/immich-app/immich/discussions/new?category=feature-request)).
+  Embedding a VPN engine and a native WireGuard library in the official app is a large, opinionated
+  change, so a discussion linking to this fork is the right first step, not a pull request.
+- Immich's guidelines also **decline pull requests generated with an LLM**. This fork was built with
+  substantial help from an AI assistant (Claude), which is stated in the commit trailers. Opening it
+  upstream as-is would go against their rules; misrepresenting that is grounds for a block. Anyone
+  who wants to carry it upstream must own the code: understand and be able to defend every line,
+  and say how it was produced.
+- The most useful upstream contributions from this work are probably the two Android findings,
+  which affect stock Immich's *Only while charging* option regardless of Home Link:
+  1. phones with a charge limit report *not charging* while plugged in, and WorkManager's charging
+     constraint then kills the foreground upload worker that JobScheduler just started;
+  2. without the battery-optimisation exemption the worker is not a foreground service, which is
+     the reason many "background backup does not run" reports end up being.
+  Both are good bug reports / discussions with the reproduction details from
+  [Android gotchas](#android-gotchas-you-should-know).
 
 ## Credits and license
 
