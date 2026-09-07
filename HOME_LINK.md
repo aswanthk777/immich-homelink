@@ -361,6 +361,12 @@ install over each other. The APK contains no configuration; everything is entere
 
 ## Contributing this upstream
 
+**Asked and answered:** the Immich maintainers replied in
+[discussion #31315](https://github.com/immich-app/immich/discussions/31315) that they are not interested
+in adding this to the official app. Home Link therefore stays an independent fork; contributions go
+here, and the branch is rebased on upstream to stay current. The notes below are kept for anyone who
+wants to propose the Android findings separately.
+
 Short version: **ask first, and be upfront about how it was built.**
 
 - Immich's [CONTRIBUTING.md](CONTRIBUTING.md) asks for large changes to be discussed before any PR
