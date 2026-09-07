@@ -89,6 +89,7 @@ object HomeLinkEngine {
   @Volatile private var activeConfig: String? = null   // wg userspace text of what is up (Config has no value equality)
   @Volatile private var lanNetwork: Network? = null
   @Volatile private var lanBlockedUntil = 0L
+  @Volatile private var vpnConsent = false               // last known VpnService.prepare() result, refreshed only when safe
   @Volatile private var lastFailAt = 0L               // a failed tunnel attempt is not retried for FAIL_BACKOFF_MS unless the network changes
   private val holds: MutableSet<String> = ConcurrentHashMap.newKeySet()
   private var idleJob: Job? = null
@@ -223,7 +224,7 @@ object HomeLinkEngine {
     }
     return HomeLinkStatus(
       state = state,
-      vpnPermissionGranted = initialized && VpnService.prepare(app) == null,
+      vpnPermissionGranted = initialized && (if (foreignVpnActive()) vpnConsent else (VpnService.prepare(app) == null).also { vpnConsent = it }),
       tunnelUp = tunnelUp,
       holds = holds.toList(),
       detail = detail,
@@ -275,10 +276,27 @@ object HomeLinkEngine {
       scheduleRetry()
       return status()
     }
+    // Another app's VPN owns Android's single VPN slot: never take it away. On some ROMs (OnePlus)
+    // even VpnService.prepare() re-assigns the slot to us, so it must not be called at all here.
+    // If the server is reachable through that VPN, use it; otherwise wait for it to go away.
+    if (foreignVpnActive()) {
+      if (probe(clientFor(null), homeUrl)) {
+        state = HomeLinkState.LAN; detail = "Through another VPN"
+        retryDelay = RETRY_MIN_MS; retryJob?.cancel()
+        Log.i(TAG, "link: another VPN is active and reaches home, using it")
+      } else {
+        state = HomeLinkState.ERROR; detail = "Another VPN is active, Home Link stays off"
+        lastFailAt = SystemClock.elapsedRealtime()
+        Log.i(TAG, "another VPN is active, not taking the VPN slot")
+        scheduleRetry()
+      }
+      return status()
+    }
     if (VpnService.prepare(app) != null) {
       state = HomeLinkState.ERROR; detail = "VPN permission not granted"
       return status()
     }
+    vpnConsent = true
     if (state == HomeLinkState.ERROR && SystemClock.elapsedRealtime() - lastFailAt < FAIL_BACKOFF_MS) return status()
     if (!tunnelUp) { state = HomeLinkState.CONNECTING; detail = null }
     try {
@@ -369,6 +387,11 @@ object HomeLinkEngine {
       (c.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || c.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) &&
         !c.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
     } == true
+  }
+
+  /** A VPN network exists and it is not ours (Android allows a single VPN, so if ours is up it is the only one). */
+  private fun foreignVpnActive(): Boolean = !tunnelUp && cm.allNetworks.any { n ->
+    cm.getNetworkCapabilities(n)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
   }
 
   private fun hasInternetNetwork(): Boolean = cm.allNetworks.any { n ->
@@ -558,7 +581,8 @@ object HomeLinkEngine {
       Log.i(TAG, "network change ($why), re-evaluating")
       lastFailAt = 0L
       retryDelay = RETRY_MIN_MS
-      val onLan = state == HomeLinkState.LAN
+      // LAN reached through another app's VPN has no bound network: nothing to flap-guard there.
+      val onLan = state == HomeLinkState.LAN && lanNetwork != null
       if (onLan) {
         val still = lanNetwork?.let { probe(clientFor(it), store.homeUrl!!) } == true
         if (still) return
