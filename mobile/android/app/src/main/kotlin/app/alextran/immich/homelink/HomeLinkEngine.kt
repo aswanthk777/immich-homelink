@@ -55,6 +55,7 @@ object HomeLinkEngine {
   private const val IDLE_TRAFFIC_WINDOW_MS = 10_000L // ... then require this long with no traffic
   private const val LAN_FLAP_GUARD_MS = 3 * 60_000L  // a LAN path that just failed stays blocked this long
   private const val NETWORK_SETTLE_MS = 2_000L       // debounce for connectivity callbacks
+  private const val FOREIGN_VPN_GRACE_MS = 45_000L   // another app's VPN must be gone this long before we take the slot
   private const val KEEPALIVE_ACTIVE = 25            // seconds, while someone is using the tunnel
   private const val KEEPALIVE_IDLE = 0               // "keep up when away": no packets while idle
   private const val DEFAULT_MTU = 1280
@@ -89,6 +90,7 @@ object HomeLinkEngine {
   @Volatile private var activeConfig: String? = null   // wg userspace text of what is up (Config has no value equality)
   @Volatile private var lanNetwork: Network? = null
   @Volatile private var lanBlockedUntil = 0L
+  @Volatile private var lastForeignVpnAt = -FOREIGN_VPN_GRACE_MS   // when another app's VPN was last seen
   @Volatile private var vpnConsent = false               // last known VpnService.prepare() result, refreshed only when safe
   @Volatile private var lastFailAt = 0L               // a failed tunnel attempt is not retried for FAIL_BACKOFF_MS unless the network changes
   private val holds: MutableSet<String> = ConcurrentHashMap.newKeySet()
@@ -390,8 +392,14 @@ object HomeLinkEngine {
   }
 
   /** A VPN network exists and it is not ours (Android allows a single VPN, so if ours is up it is the only one). */
-  private fun foreignVpnActive(): Boolean = !tunnelUp && cm.allNetworks.any { n ->
-    cm.getNetworkCapabilities(n)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
+  private fun foreignVpnActive(): Boolean {
+    val now = !tunnelUp && cm.allNetworks.any { n ->
+      cm.getNetworkCapabilities(n)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
+    }
+    if (now) lastForeignVpnAt = SystemClock.elapsedRealtime()
+    // Other VPN apps tear their tunnel down and re-establish it on network changes; do not slip
+    // into that gap. Only after the other VPN has been gone for a while is the slot free for us.
+    return now || SystemClock.elapsedRealtime() - lastForeignVpnAt < FOREIGN_VPN_GRACE_MS
   }
 
   private fun hasInternetNetwork(): Boolean = cm.allNetworks.any { n ->

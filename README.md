@@ -40,6 +40,7 @@ WireGuard tunnel and a small engine that decides *when* to use it.
 | Server URL | Separate local / remote URLs, Wi-Fi-name switching | **One URL**, the LAN address, works everywhere |
 | Background backup away from home | Needs the VPN up in the background | **Runs only while charging**; plugging in is the trigger, app closed |
 | Battery cost while idle | VPN keepalives all day | **Zero**: no tunnel, no keepalives, no background work on battery |
+| Running another VPN app too | Impossible, one VPN at a time | **Coexists**: Home Link never takes the slot from another app, uses that VPN if it reaches home, and resumes after it's off |
 | Services involved | Your choice of relay / coordination server | **None**. One WireGuard UDP port at home, silent to strangers |
 
 Your Immich **server is untouched**. Any version works, Docker or not.
