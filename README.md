@@ -17,6 +17,13 @@
   No always-on VPN eating the whole phone. Scan the WireGuard QR from your home box, and you're done.
 </p>
 
+> [!NOTE]
+> This is a **community fork of Immich** that adds one thing: a per-app WireGuard tunnel to your home,
+> with charger-gated background backups. Everything else is upstream Immich, and the server is not
+> modified at all. Currently based on Immich `main` as of 2026-09-07 (mobile app 3.2.0-rc.0, tested
+> against a v3.1.0 server). The `home-link` branch is rebased on upstream regularly to stay up to date.
+> See [What this fork changes](#what-this-fork-changes) below.
+
 ---
 
 ## What this fork changes
