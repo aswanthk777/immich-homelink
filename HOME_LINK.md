@@ -376,10 +376,10 @@ Short version: **ask first, and be upfront about how it was built.**
   Embedding a VPN engine and a native WireGuard library in the official app is a large, opinionated
   change, so a discussion linking to this fork is the right first step, not a pull request.
 - Immich's guidelines also **decline pull requests generated with an LLM**. This fork was built with
-  substantial help from an AI assistant (Claude), which is stated in the commit trailers. Opening it
-  upstream as-is would go against their rules; misrepresenting that is grounds for a block. Anyone
-  who wants to carry it upstream must own the code: understand and be able to defend every line,
-  and say how it was produced.
+  substantial help from an AI assistant (Claude), directed and tested by a networking engineer;
+  see the note at the top of the README. Opening it upstream as-is would go against their rules;
+  misrepresenting that is grounds for a block. Anyone who wants to carry it upstream must own the
+  code: understand and be able to defend every line, and say how it was produced.
 - The most useful upstream contributions from this work are probably the two Android findings,
   which affect stock Immich's *Only while charging* option regardless of Home Link:
   1. phones with a charge limit report *not charging* while plugged in, and WorkManager's charging
