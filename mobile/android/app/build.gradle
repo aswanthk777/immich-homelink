@@ -114,6 +114,10 @@ dependencies {
   implementation libs.compose.material3
   implementation libs.lifecycle.runtime.ktx
   implementation libs.material
+
+  // Home Link: per-app WireGuard tunnel + QR import of the config
+  implementation libs.wireguard.tunnel
+  implementation libs.zxing.embedded
 }
 
 // This is uncommented in F-Droid build script

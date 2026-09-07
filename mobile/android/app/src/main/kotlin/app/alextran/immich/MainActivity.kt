@@ -13,6 +13,7 @@ import app.alextran.immich.connectivity.ConnectivityApiImpl
 import app.alextran.immich.core.HttpClientManager
 import app.alextran.immich.core.ImmichPlugin
 import app.alextran.immich.core.NetworkApiPlugin
+import app.alextran.immich.homelink.HomeLinkApiImpl
 import me.albemala.native_video_player.NativeVideoPlayerPlugin
 import app.alextran.immich.images.LocalImageApi
 import app.alextran.immich.images.LocalImagesImpl
@@ -63,6 +64,7 @@ class MainActivity : FlutterFragmentActivity() {
       ConnectivityApi.setUp(messenger, ConnectivityApiImpl(ctx))
 
       flutterEngine.plugins.add(ViewIntentPlugin())
+      flutterEngine.plugins.add(HomeLinkApiImpl())
       flutterEngine.plugins.add(backgroundEngineLockImpl)
       flutterEngine.plugins.add(nativeSyncApiImpl)
       flutterEngine.plugins.add(permissionApiImpl)

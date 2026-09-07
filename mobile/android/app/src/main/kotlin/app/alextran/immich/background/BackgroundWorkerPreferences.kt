@@ -14,7 +14,7 @@ class BackgroundWorkerPreferences(private val ctx: Context) {
     private const val SHARED_PREF_NOTIF_MSG_KEY = "BackgroundWorker::notificationMessage"
 
     private const val DEFAULT_MIN_DELAY_SECONDS = 30L
-    private const val DEFAULT_REQUIRE_CHARGING = false
+    private const val DEFAULT_REQUIRE_CHARGING = true   // Home Link build: background work only on the charger
     private const val DEFAULT_NOTIF_TITLE = "Uploading media"
     private const val DEFAULT_NOTIF_MSG = "Checking for new assets…"
   }

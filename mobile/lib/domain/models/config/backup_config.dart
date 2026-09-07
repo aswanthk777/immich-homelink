@@ -9,7 +9,8 @@ abstract class BackupConfig with _$BackupConfig {
     @Default(false) bool enabled,
     @Default(false) bool useCellularForVideos,
     @Default(false) bool useCellularForPhotos,
-    @Default(false) bool requireCharging,
+    // Home Link build: background backup (and its tunnel) only while the phone is charging.
+    @Default(true) bool requireCharging,
     @Default(30) int triggerDelay,
     @Default(false) bool syncAlbums,
   }) = _BackupConfig;
