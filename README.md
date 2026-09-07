@@ -23,6 +23,10 @@
 > modified at all. Currently based on Immich `main` as of 2026-09-07 (mobile app 3.2.0-rc.0, tested
 > against a v3.1.0 server). The `home-link` branch is rebased on upstream regularly to stay up to date.
 > See [What this fork changes](#what-this-fork-changes) below.
+>
+> **Disclosure:** the Home Link code and documentation were written with substantial help from an AI
+> assistant (Claude), directed, reviewed and tested on real hardware by the maintainer, who builds
+> networking firmware for a living. Read the code before you trust it with your network; it is all here.
 
 ---
 
