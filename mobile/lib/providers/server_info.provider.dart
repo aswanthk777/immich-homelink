@@ -64,7 +64,12 @@ class ServerInfoNotifier extends StateNotifier<ServerInfo> {
     final packageInfo = await PackageInfo.fromPlatform();
     final SemVer clientVersion = SemVer.fromString(packageInfo.version);
 
-    if (serverVersion < clientVersion || (latestVersion != null && serverVersion < latestVersion)) {
+    // Home Link builds come from upstream main, whose app version is a pre-release (x.y.0-rc.N) that
+    // is ahead of every released server. A pre-release app must not flag a current stable server
+    // as "out of date" just for being older than itself; only the server's own latest-release check
+    // counts then. Stable app builds keep the upstream behaviour.
+    final appIsPrerelease = clientVersion.prerelease != null;
+    if ((!appIsPrerelease && serverVersion < clientVersion) || (latestVersion != null && serverVersion < latestVersion)) {
       state = state.copyWith(versionStatus: VersionStatus.serverOutOfDate);
       return;
     }
