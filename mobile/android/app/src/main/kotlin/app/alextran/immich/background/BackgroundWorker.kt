@@ -112,6 +112,7 @@ class BackgroundWorker(context: Context, params: WorkerParameters) :
       return Futures.immediateFuture(Result.success())
     }
     if (requiresCharging) registerUnplugReceiver()
+    BackgroundWorkerPreferences(ctx).setLastBackgroundRun(System.currentTimeMillis())
 
     if (!loader.initialized()) {
       loader.startInitialization(ctx)

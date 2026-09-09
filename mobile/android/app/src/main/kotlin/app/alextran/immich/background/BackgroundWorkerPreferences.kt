@@ -10,6 +10,7 @@ class BackgroundWorkerPreferences(private val ctx: Context) {
     private const val SHARED_PREF_MIN_DELAY_KEY = "BackgroundWorker::minDelaySeconds"
     private const val SHARED_PREF_REQUIRE_CHARGING_KEY = "BackgroundWorker::requireCharging"
     private const val SHARED_PREF_LOCK_KEY = "BackgroundWorker::isLocked"
+    private const val SHARED_PREF_LAST_BG_RUN_KEY = "BackgroundWorker::lastBackgroundRun"
     private const val SHARED_PREF_NOTIF_TITLE_KEY = "BackgroundWorker::notificationTitle"
     private const val SHARED_PREF_NOTIF_MSG_KEY = "BackgroundWorker::notificationMessage"
 
@@ -55,6 +56,12 @@ class BackgroundWorkerPreferences(private val ctx: Context) {
     val message = sp.getString(SHARED_PREF_NOTIF_MSG_KEY, DEFAULT_NOTIF_MSG) ?: DEFAULT_NOTIF_MSG
     return Pair(title, message)
   }
+
+  fun setLastBackgroundRun(atMillis: Long) {
+    sp.edit { putLong(SHARED_PREF_LAST_BG_RUN_KEY, atMillis) }
+  }
+
+  fun getLastBackgroundRun(): Long = sp.getLong(SHARED_PREF_LAST_BG_RUN_KEY, 0L)
 
   fun setLocked(paused: Boolean) {
     sp.edit {

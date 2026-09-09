@@ -39,7 +39,13 @@ class BackgroundWorkerApiImpl(context: Context) : BackgroundWorkerFgHostApi {
     if (!isBackgroundWorkerRunning()) {
       WorkManager.getInstance(ctx).cancelUniqueWork(BACKGROUND_WORKER_NAME)
     }
-    if (settings.requiresCharging) enqueueChargeTrigger(ctx) else cancelChargeTrigger(ctx)
+    if (settings.requiresCharging) {
+      enqueueChargeTrigger(ctx)
+      enqueuePlugCheck(ctx)
+    } else {
+      cancelChargeTrigger(ctx)
+      WorkManager.getInstance(ctx).cancelUniqueWork(PLUG_CHECK_NAME)
+    }
   }
 
   override fun disable() {
@@ -48,6 +54,7 @@ class BackgroundWorkerApiImpl(context: Context) : BackgroundWorkerFgHostApi {
       cancelUniqueWork(BACKGROUND_WORKER_NAME)
       cancelUniqueWork(PERIODIC_WORKER_NAME)
       cancelUniqueWork(CHARGE_TRIGGER_NAME)
+      cancelUniqueWork(PLUG_CHECK_NAME)
     }
     Log.i(TAG, "Cancelled background upload tasks")
   }
@@ -57,6 +64,7 @@ class BackgroundWorkerApiImpl(context: Context) : BackgroundWorkerFgHostApi {
     private const val OBSERVER_WORKER_NAME = "immich/MediaObserverV1"
     private const val PERIODIC_WORKER_NAME = "immich/PeriodicBackgroundWorkerV1"
     private const val CHARGE_TRIGGER_NAME = "immich/ChargeTriggerV1"
+    private const val PLUG_CHECK_NAME = "immich/PlugCheckV1"
     const val ENGINE_CACHE_KEY = "immich::background_worker::engine"
 
 
@@ -133,6 +141,12 @@ class BackgroundWorkerApiImpl(context: Context) : BackgroundWorkerFgHostApi {
       val work = OneTimeWorkRequestBuilder<ChargeTriggerWorker>().setConstraints(constraints).build()
       WorkManager.getInstance(ctx).enqueueUniqueWork(CHARGE_TRIGGER_NAME, ExistingWorkPolicy.KEEP, work)
       Log.i(TAG, "Armed charge trigger: $CHARGE_TRIGGER_NAME")
+    }
+
+    /** Unconstrained 15-minute plug-state check, see [PlugCheckWorker]. */
+    fun enqueuePlugCheck(ctx: Context) {
+      val work = PeriodicWorkRequestBuilder<PlugCheckWorker>(15, TimeUnit.MINUTES).build()
+      WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(PLUG_CHECK_NAME, ExistingPeriodicWorkPolicy.KEEP, work)
     }
 
     fun cancelChargeTrigger(ctx: Context) {
