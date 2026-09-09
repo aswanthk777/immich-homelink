@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import app.alextran.immich.background.BackgroundEngineLock
 import app.alextran.immich.background.BackgroundWorkerApiImpl
+import app.alextran.immich.background.BackgroundWorkerPreferences
 import app.alextran.immich.homelink.HomeLinkEngine
 
 class ImmichApp : Application() {
@@ -17,7 +18,23 @@ class ImmichApp : Application() {
     registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
       private var visible = 0
       override fun onActivityResumed(activity: Activity) { if (visible++ == 0) HomeLinkEngine.foreground(true) }
-      override fun onActivityPaused(activity: Activity) { if (--visible <= 0) { visible = 0; HomeLinkEngine.foreground(false) } }
+      override fun onActivityPaused(activity: Activity) {
+        if (--visible <= 0) {
+          visible = 0
+          HomeLinkEngine.foreground(false)
+          // The open app cancels the background worker and does its own backup. Once it leaves the
+          // screen, hand back to the background: with "only while charging" the trigger fires right
+          // away on the charger, or at the next plug-in. Without it the hourly job would be the
+          // next chance.
+          // A few seconds later: the Flutter side releases its foreground lock slightly after this
+          // callback, and a worker started immediately would still see it and skip.
+          Handler(Looper.getMainLooper()).postDelayed({
+            if (visible == 0 && BackgroundWorkerPreferences(this@ImmichApp).getSettings().requiresCharging) {
+              BackgroundWorkerApiImpl.enqueueChargeTrigger(this@ImmichApp)
+            }
+          }, 5000)
+        }
+      }
       override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
       override fun onActivityStarted(activity: Activity) {}
       override fun onActivityStopped(activity: Activity) {}
