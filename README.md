@@ -102,10 +102,10 @@ generated on the phone so the private key never leaves it: [HOME_LINK.md → Wir
 
 ## What we learned about Android on the way
 
-Two findings that also affect the official app's *Only while charging* option (documented with fixes in [HOME_LINK.md](HOME_LINK.md#android-gotchas-you-should-know)):
+Two things about Android that shaped the design (details in [HOME_LINK.md](HOME_LINK.md#android-gotchas-you-should-know)):
 
-- Phones with a **charge limit** (OnePlus 90 %, Samsung "protect battery", Pixel adaptive charging) report *not charging* while plugged in. Android's scheduler starts the backup job anyway, but WorkManager's own battery tracker kills it milliseconds later. Home Link enforces "charger connected" itself instead.
-- Without the **battery-optimisation exemption**, the upload worker never becomes a foreground service, and starting a VPN service from the background is then forbidden. Home Link warns and offers the system dialog.
+- **"Charging" is a fuzzy signal.** Phones with a **charge limit** (verified on a OnePlus at 90 %) report *not charging* while plugged in, and Android's scheduler flags "charging" only minutes after the cable goes in. Home Link never puts a WorkManager charging constraint on the upload itself and checks the cable state directly, so neither quirk can stall a backup.
+- **The battery-optimisation exemption is mandatory here.** Immich only promotes its worker to a foreground service when the app is exempt, and without a foreground service Android forbids starting the WireGuard VPN service from the background. Home Link warns and offers the system dialog.
 
 ## Building from source
 
