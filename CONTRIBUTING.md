@@ -1,51 +1,36 @@
-# Contributing to Immich
+# Contributing to Immich Home Link
 
-We appreciate every contribution, and we're happy about every new contributor. So please feel invited to help make Immich a better product!
+This is a fork of [Immich](https://github.com/immich-app/immich). Everything outside the Home Link
+feature is upstream code; please send fixes for the server, web app or stock mobile features to
+Immich itself (their guide: [CONTRIBUTING.upstream.md](CONTRIBUTING.upstream.md)).
 
-## Getting started
+## What lives here
 
-To get you started quickly we have detailed guides for the dev setup on our [website](https://docs.immich.app/developer/setup). If you prefer, you can also use [Devcontainers](https://docs.immich.app/developer/devcontainers).
-There are also additional resources about Immich's architecture, database migrations, the use of OpenAPI, and more in our [developer documentation](https://docs.immich.app/developer/architecture).
+The Android app's per-app WireGuard engine and the charger-gated background backup. The code map is
+in [HOME_LINK.md](HOME_LINK.md#code-map). Almost everything is under `mobile/android/.../homelink/`,
+`mobile/android/.../background/`, `mobile/lib/services/home_link.service.dart` and the settings card.
 
-## General
+## Reporting
 
-Please try to keep pull requests as focused as possible. A PR should do exactly one thing and not bleed into other, unrelated areas. The smaller a PR, the fewer changes are likely needed, and the quicker it will likely be merged. For larger/more impactful PRs, please reach out to us first to discuss your plans. The best way to do this is through our [Discord](https://discord.immich.app). We have a dedicated `#contributing` channel there. Additionally, please fill out the entire template when opening a PR.
+- Works or doesn't on your phone: open a **Device report** issue. Both outcomes are useful; the
+  README's tested-devices table is built from them.
+- Broken behaviour: open a **Bug** issue with the log from
+  `adb logcat -s HomeLink BackgroundWorker ChargeTrigger PlugCheck MediaObserver`.
+  Strip keys, endpoints and IPs first.
 
-## Finding work
+## Changes
 
-If you are looking for something to work on, there are discussions and issues with a `good-first-issue` label on them. These are always a good starting point. If none of them sound interesting or fit your skill set, feel free to reach out on our Discord. We're happy to help you find something to work on!
+- Keep pull requests to one thing. Describe what you tested on which phone; the engine's behaviour
+  can only be judged on real devices (charge limits, vendor ROMs and battery managers all differ).
+- Build instructions: [HOME_LINK.md → Building](HOME_LINK.md#building-from-source). CI builds every
+  push and PR and attaches the APKs as an artifact, so you can test a PR build on a phone.
+- Upstream Immich declines pull requests generated with an LLM, and this fork has no better way to
+  review code than they do. If you used an AI assistant, say so in the PR and be able to explain every
+  line; PRs whose author cannot answer questions about them will be closed.
+- Releases are tagged `homelink-vX.Y.Z` on the `home-link` branch. The branch is periodically
+  rebased on upstream `main`; do not base work on `main` here, it is a mirror.
 
-We usually do not assign issues to new contributors, since it happens often that a PR is never even opened. Again, reach out on Discord if you fear putting a lot of time into fixing an issue, but ending up with a duplicate PR.
+## Scope
 
-## Use of generative AI
-
-We ask you not to open PRs generated with an LLM. We find that code generated like this tends to need a large amount of back-and-forth, which is a very inefficient use of our time. Even a one line change can have significant impact. We cannot have any confidence in an LLM, so if it's non-trivial for us to verify it works and you don't show that you fully understand all implications of the change, reviewing the PR is not worth our time. If we want LLM-generated code, it's much faster for us to use an LLM ourselves than to go through an intermediary via a pull request.
-
-If you use an LLM to translate a PR description or title, that is fine. Please make sure however that you stick to the PR template and that the text is written concisely.
-
-LLMs must not be used to fix GitHub issues labelled good first issue. These issues are generally not urgent, and are intended to be learning opportunities for new contributors to get familiar with the codebase. Whether you are a newcomer or not, fully automating the process of fixing this issue squanders the learning opportunity and doesn’t add much value to the project. Using LLMs to fix issues labelled as “good first issue” is forbidden, and those PRs will be closed automatically.
-
-Misrepresenting LLM use, contribution farming (automated low-effort PRs), or repeatedly hitting auto-close rules may be grounds for a block at maintainer discretion.
-
-## Feature freezes
-
-From time to time, we put a feature freeze on parts of the codebase. For us, this means we won't accept most PRs that make changes in that area. Exempted from this are simple bug fixes that require only minor changes. We will close feature PRs that target a feature-frozen area, even if that feature is highly requested and you put a lot of work into it. Please keep that in mind, and if you're ever uncertain if a PR would be accepted, reach out to us first (e.g., in the aforementioned `#contributing` channel). We hate to throw away work. Currently, we have feature freezes on:
-
-- Sharing/Asset ownership
-- (External) libraries
-
-## Non-code contributions
-
-If you want to contribute to Immich but you don't feel comfortable programming in our tech stack, there are other ways you can help the team.
-
-### Translations
-
-All our translations are done through [Weblate](https://hosted.weblate.org/projects/immich). These rely entirely on the community; if you speak a language that isn't fully translated yet, submitting translations there is greatly appreciated!
-
-### Datasets
-
-Help us improve our [Immich Datasets](https://datasets.immich.app) by submitting photos and videos taken from a variety of devices, including smartphones, DSLRs, and action cameras, as well as photos with unique features, such as panoramas, burst photos, and photo spheres. These datasets will be publicly available for anyone to use, do not submit private/sensitive photos.
-
-### Community support
-
-If you like helping others, answering Q&A discussions here on GitHub and replying to people on our Discord is also always appreciated.
+Things deliberately out of scope: iOS (per-app VPN on iOS needs an MDM-managed device, so it cannot
+be done in a normal app), and re-implementing anything Immich upstream already provides.

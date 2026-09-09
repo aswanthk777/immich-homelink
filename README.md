@@ -61,10 +61,24 @@ Your Immich **server is untouched**. Any version works, Docker or not.
 
 Full behaviour table, internals and design notes: **[HOME_LINK.md](HOME_LINK.md)**.
 
+## Download
+
+| File | For |
+|---|---|
+| `immich-homelink-arm64-v8a.apk` | Nearly every phone from the last 8 years. Smallest download. |
+| `immich-homelink-armeabi-v7a.apk` | Old 32-bit phones. |
+| `immich-homelink-universal.apk` | Everything, larger. What the releases up to v0.1.3 shipped. |
+
+Get them from the [latest release](https://github.com/aswanthk777/immich-homelink/releases/latest), Android 8+.
+The app installs next to the Play Store Immich, not over it. **Pick one flavour and stay on it**: the per-ABI
+files carry a higher version code than the universal one, so Android refuses to go from arm64 back to universal.
+
+**Automatic updates**: add this repository to [Obtainium](https://github.com/ImranR98/Obtainium) and it
+installs every release as it appears. F-Droid is not planned (the app has non-reproducible, non-free build inputs from upstream).
+
 ## Quick start
 
-**1. Install the app** from the [latest release](https://github.com/aswanthk777/immich-homelink/releases/latest)
-(universal APK, Android 8+). It installs next to the Play Store app, not over it.
+**1. Install the app** (see [Download](#download)).
 
 **2. Give your phone a WireGuard peer at home.** Any Linux box on the LAN works, a Raspberry Pi is plenty.
 If you already run WireGuard, just add a peer whose `AllowedIPs` include your LAN. If not, the bundled
@@ -106,11 +120,20 @@ flutter build apk --release
 
 Details, signing and debugging: [HOME_LINK.md → Building](HOME_LINK.md#building-from-source).
 
+## Tested devices
+
+Built from [device reports](https://github.com/aswanthk777/immich-homelink/issues?q=label%3Adevice-report). Add yours, working or not.
+
+| Phone | Android | Home Link | Result |
+|---|---|---|---|
+| OnePlus 15 (CPH2745) | 16, OxygenOS | v0.1.3 | Everything works. Charge limit at 90 % and the scheduler's late "charging" flag are handled. Battery exemption required. |
+
 ## Status
 
-- Android only (per-app VPN is an Android feature). iOS is not planned.
+- Android only. iOS cannot do this: per-app VPN there requires an MDM-managed device, so no normal app can offer it. Not planned.
 - Tested end to end on a OnePlus running Android 16: LAN detection, tunnel, login through the tunnel, multi-GB backups over the tunnel, charger-triggered background backup with the app closed and swiped away, unplug behaviour.
-- Reports from other devices and vendors are very welcome: open an issue with `adb logcat -s HomeLink BackgroundWorker ChargeTrigger`.
+- Reports from other devices and vendors are very welcome: open a [device report](https://github.com/aswanthk777/immich-homelink/issues/new/choose).
+- CI builds every push and pull request and attaches the APKs; releases are published from `homelink-v*` tags.
 - The Immich team has declined to take this upstream ([immich-app/immich#31315](https://github.com/immich-app/immich/discussions/31315)), so it lives on as an independent community fork. Contributions here are welcome.
 
 ## Credits and license

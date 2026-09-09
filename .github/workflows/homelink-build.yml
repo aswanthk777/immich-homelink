@@ -1,0 +1,94 @@
+name: Home Link build
+
+on:
+  push:
+    branches: [home-link]
+    tags: ['homelink-v*']
+  pull_request:
+    branches: [home-link]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: homelink-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up mise (Flutter, Dart, Java, openapi-generator)
+        uses: immich-app/devtools/actions/use-mise@06a9ef925332c91be647d6256642b86b398592c8 # use-mise-action-v3.2.1
+        with:
+          working-directory: ./mobile
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Restore Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: homelink-gradle-${{ runner.os }}-${{ hashFiles('mobile/android/gradle/libs.versions.toml', 'mobile/android/**/*.gradle') }}
+          restore-keys: homelink-gradle-${{ runner.os }}-
+
+      - name: Release keystore (only when the secret exists)
+        if: ${{ env.KEY_JKS != '' }}
+        env:
+          KEY_JKS: ${{ secrets.KEY_JKS }}
+        run: printf "%s" "$KEY_JKS" | base64 -d > android/key.jks
+
+      - name: Install dependencies
+        run: mise //mobile:install:ci
+
+      - name: Generate code (OpenAPI SDK, pigeon, translations, drift, build_runner)
+        run: mise //mobile:codegen
+
+      - name: Build APKs
+        env:
+          ALIAS: ${{ secrets.ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          flutter build apk --release
+          flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64
+          cd build/app/outputs/flutter-apk
+          mv app-release.apk immich-homelink-universal.apk
+          mv app-arm64-v8a-release.apk immich-homelink-arm64-v8a.apk
+          mv app-armeabi-v7a-release.apk immich-homelink-armeabi-v7a.apk
+          sha256sum immich-homelink-*.apk > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: immich-homelink-apks
+          path: |
+            mobile/build/app/outputs/flutter-apk/immich-homelink-*.apk
+            mobile/build/app/outputs/flutter-apk/SHA256SUMS.txt
+
+      - name: Publish release (tags only)
+        if: startsWith(github.ref, 'refs/tags/homelink-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Immich Home Link ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            mobile/build/app/outputs/flutter-apk/immich-homelink-*.apk
+            mobile/build/app/outputs/flutter-apk/SHA256SUMS.txt
