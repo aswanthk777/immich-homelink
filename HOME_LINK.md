@@ -63,6 +63,8 @@ while Immich is actually talking to home.
 | App left (backgrounded), on charger | 20 s grace, then tunnel down as soon as 10 s pass with no bytes moving (an upload still running finishes first). |
 | Background backup | **Only while charging** (Backup → *Charging*, on by default in this build; also shown in the Home Link card). Plugging in is the trigger: a photo taken during the day is queued by Immich's media observer and uploaded when the phone next goes on the charger, no app open needed. The upload worker asks the engine for a link first (home network, else tunnel), releases it when done. Unplugging stops the upload and the tunnel at once and re-arms the trigger for the next charge. While the phone stays on the charger, Immich's hourly periodic check keeps it in sync. |
 | Another VPN app is active (a full-device WireGuard, Tailscale, …) | Android has a single VPN slot and Home Link **never takes it from another app**: the engine does not even call `VpnService.prepare()` while a foreign VPN exists (on OnePlus/OPLUS ROMs that call alone re-assigns the slot). If the server answers through that VPN it is used directly (*Through another VPN*), otherwise Home Link waits (*Another VPN is active*) and resumes 45 s after it has gone away (other VPN apps drop and re-establish their tunnel on network changes; Home Link must not slip into that gap). |
+| Android's scheduler never flags "charging" | Seen on OnePlus/Android 16: `Power connected: true, Battery charging: false` for 15+ minutes on a 3.9 A fast charger, which parks every charging-constrained job. Fallback since v0.1.3: an unconstrained 15-minute **plug check** (`PlugCheckWorker`) reads the cable state itself and starts the upload worker if the phone is on the charger and no run happened in the last 30 minutes. On battery it exits in milliseconds; Doze batches it. |
+| App opened while a background backup runs | Stock Immich cancels the worker and lets the open app back up instead. Since v0.1.3, when the app leaves the screen the charge trigger is re-armed 5 s later, so the background backup resumes on the charger within seconds instead of at the next hourly job. |
 | Wi-Fi ↔ mobile change while linked | Debounced 2 s, re-evaluated. Leaving home → tunnel; the LAN path is then blocked for 3 min so a marginal Wi-Fi cannot flap. Arriving home → tunnel dropped. |
 | "Keep tunnel up when away" (setting, off by default) | **On the charger only**: the tunnel stays up between uses with keepalive 0 (sends nothing) so the app opens instantly. On battery it is ignored. |
 
@@ -288,7 +290,8 @@ next plug-in and enqueues the upload worker again.
 | `mobile/android/.../homelink/HomeLinkApiImpl.kt` | Pigeon host, VPN consent dialog, QR scanner (`PortraitCaptureActivity`). |
 | `mobile/android/.../background/BackgroundWorker.kt` | Upstream worker + link acquisition, plugged-in check, unplug receiver. |
 | `mobile/android/.../background/BackgroundWorkerApiImpl.kt` | Scheduling; `ChargeTriggerWorker`; stale-job handling on settings change. |
-| `mobile/android/.../background/ChargeTriggerWorker.kt` | Plug-in wake-up job. |
+| `mobile/android/.../background/ChargeTriggerWorker.kt` | Plug-in wake-up job (JobScheduler charging constraint). |
+| `mobile/android/.../background/PlugCheckWorker.kt` | 15-minute fallback that trusts the cable, not the scheduler's charging flag. |
 | `mobile/android/.../connectivity/ConnectivityApiImpl.kt` | Reports the real transport (looks through the VPN). |
 | `mobile/android/.../ImmichApp.kt` | Engine init and activity-visibility hold. |
 | `mobile/pigeon/home_link_api.dart` | Dart ↔ Kotlin API definition (generated files are gitignored). |
