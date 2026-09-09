@@ -19,6 +19,8 @@ jobs:
   android:
     name: Android APK
     runs-on: ubuntu-latest
+    env:
+      HAS_RELEASE_KEY: ${{ secrets.KEY_JKS != '' }}
     defaults:
       run:
         working-directory: ./mobile
@@ -49,7 +51,7 @@ jobs:
           restore-keys: homelink-gradle-${{ runner.os }}-
 
       - name: Release keystore (only when the secret exists)
-        if: ${{ secrets.KEY_JKS != '' }}
+        if: env.HAS_RELEASE_KEY == 'true'
         env:
           KEY_JKS: ${{ secrets.KEY_JKS }}
         run: printf "%s" "$KEY_JKS" | base64 -d > android/key.jks
