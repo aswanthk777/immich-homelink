@@ -313,11 +313,13 @@ These cost a full afternoon on a OnePlus running Android 16; they apply to most 
    it is instant. Since Android 8 no app can react to the plug event itself from the background
    (`ACTION_POWER_CONNECTED` cannot be declared in the manifest), so a few minutes of lag on a
    wall charger is the floor. Overnight charging does not care.
-2. **Charge limits confuse WorkManager.** Phones that hold the battery at 80–90 % (OnePlus, Samsung
-   "protect battery", Pixel "adaptive charging") report status *not charging* while plugged in.
-   JobScheduler still counts that as charging and starts the job, but WorkManager's own in-process
-   battery tracker disagrees and stops any *foreground* worker with a charging constraint within
-   milliseconds of its promotion. That is why the upload worker enforces "plugged in" itself.
+2. **Charge limits confuse WorkManager.** Phones that hold the battery at a limit (verified on a OnePlus
+   at 90 %; Samsung "protect battery" and Pixel "adaptive charging" report the same status) say *not
+   charging* while plugged in. JobScheduler still counts that as charging and starts jobs, but
+   WorkManager's own in-process battery tracker disagrees and stops any *foreground* worker that
+   carries a charging constraint within milliseconds of its promotion. Stock Immich is not affected
+   (its upload worker has no charging constraint); an early Home Link build was, which is why the
+   upload worker now enforces "plugged in" itself and never carries that constraint.
 3. **The battery-optimisation exemption is mandatory.** Upstream Immich promotes its worker to a
    foreground service only when the app is exempt (`isIgnoringBatteryOptimizations`). Without a
    foreground service, `startService()` for the WireGuard `VpnService` from the background throws
@@ -387,14 +389,12 @@ Short version: **ask first, and be upfront about how it was built.**
   see the note at the top of the README. Opening it upstream as-is would go against their rules;
   misrepresenting that is grounds for a block. Anyone who wants to carry it upstream must own the
   code: understand and be able to defend every line, and say how it was produced.
-- The most useful upstream contributions from this work are probably the two Android findings,
-  which affect stock Immich's *Only while charging* option regardless of Home Link:
-  1. phones with a charge limit report *not charging* while plugged in, and WorkManager's charging
-     constraint then kills the foreground upload worker that JobScheduler just started;
-  2. without the battery-optimisation exemption the worker is not a foreground service, which is
-     the reason many "background backup does not run" reports end up being.
-  Both are good bug reports / discussions with the reproduction details from
-  [Android gotchas](#android-gotchas-you-should-know).
+- The Android findings in [Android gotchas](#android-gotchas-you-should-know) were checked against
+  stock Immich before being reported anywhere: the charge-limit kill only affects a worker that carries
+  a WorkManager charging constraint, which stock's upload worker does not, and the battery-exemption
+  requirement is specific to starting the VPN service. Neither is an upstream bug, so no upstream
+  report was filed. If you find a behaviour that reproduces on the stock app, report it there with a
+  stock reproduction, not a Home Link one.
 
 ## Credits and license
 

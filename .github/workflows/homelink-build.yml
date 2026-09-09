@@ -49,7 +49,7 @@ jobs:
           restore-keys: homelink-gradle-${{ runner.os }}-
 
       - name: Release keystore (only when the secret exists)
-        if: ${{ env.KEY_JKS != '' }}
+        if: ${{ secrets.KEY_JKS != '' }}
         env:
           KEY_JKS: ${{ secrets.KEY_JKS }}
         run: printf "%s" "$KEY_JKS" | base64 -d > android/key.jks
