@@ -127,6 +127,7 @@ Built from [device reports](https://github.com/aswanthk777/immich-homelink/issue
 | Phone | Android | Home Link | Result |
 |---|---|---|---|
 | OnePlus 15 (CPH2745) | 16, OxygenOS | v0.1.3 | Everything works. Charge limit at 90 % and the scheduler's late "charging" flag are handled. Battery exemption required. |
+| Realme GT Neo 2 (RMX3370) | 13, Realme UI | v0.1.3 | Everything works: QR setup, login through the tunnel, background backup on the charger with the app closed. Battery exemption required. |
 
 ## Status
 

@@ -218,7 +218,10 @@ private key.
      background, so no backup away from home can ever run (see [gotchas](#android-gotchas-you-should-know)).
 3. Log in with the same LAN URL. The card shows *Home network · direct* at home and *Tunnel* elsewhere,
    with a *Test* button that probes the server both ways.
-4. **Settings → Backup**: enable background backup as usual. *Charging* is on by default in this build.
+4. **Backup page** (cloud icon on the timeline): *Select* the albums, then switch on **Enable Backup** at the
+   bottom of the page. Selecting albums alone does nothing; the worker logs `hashTimeout: 360s` and skips the
+   upload step while that switch is off (`180s` once it is on). The gear on that page holds the network rules
+   and *Charging*, which is on by default in this build.
 
 Family phones: repeat per phone, each with its own peer. On some vendors (MIUI and friends) `adb install`
 is blocked; copy the APK to the phone and install it from the file manager instead.
