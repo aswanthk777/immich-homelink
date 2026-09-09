@@ -1,0 +1,31 @@
+name: Bug
+description: Something in Home Link (tunnel, home detection, charger-gated backup) is broken.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: For problems with Immich itself (server, web, features that exist in the stock app) please use the upstream project.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: input
+    id: env
+    attributes:
+      label: Phone, Android version, Home Link release
+      placeholder: e.g. Pixel 8, Android 15, homelink-v0.1.3
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: "`adb logcat -s HomeLink BackgroundWorker ChargeTrigger PlugCheck MediaObserver`. Remove keys, IPs and endpoints you do not want public."
+      render: text

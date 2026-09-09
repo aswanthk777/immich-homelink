@@ -1,0 +1,47 @@
+name: Device report
+description: Tell us whether Home Link works on your phone. Working reports are as useful as broken ones.
+title: "[Device] "
+labels: ["device-report"]
+body:
+  - type: input
+    id: device
+    attributes:
+      label: Phone
+      placeholder: e.g. OnePlus 13, Pixel 8, Galaxy S23
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android version and ROM
+      placeholder: e.g. Android 16, OxygenOS 16 / stock / LineageOS 22
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Home Link release
+      placeholder: e.g. homelink-v0.1.3, universal APK
+    validations:
+      required: true
+  - type: checkboxes
+    id: works
+    attributes:
+      label: What works
+      options:
+        - label: Home network detected (card says "Home network · direct")
+        - label: Tunnel comes up away from home and the app works through it
+        - label: Background backup runs on the charger with the app closed
+        - label: Unplugging stops the backup and drops the tunnel
+        - label: Coexists with another VPN app (Home Link steps aside while it is on)
+  - type: textarea
+    id: notes
+    attributes:
+      label: What did not work, or anything odd
+      description: Charge limit on the phone? Battery optimisation exemption granted? Other VPN apps installed?
+  - type: textarea
+    id: log
+    attributes:
+      label: Log (optional, very helpful)
+      description: "`adb logcat -s HomeLink BackgroundWorker ChargeTrigger PlugCheck MediaObserver`, or Settings → Logs in the app. Remove keys, IPs and endpoints you do not want public."
+      render: text
