@@ -3,6 +3,7 @@
 All notable changes to the Home Link fork. Upstream Immich changes are not listed; the base is noted per release.
 
 ## Unreleased
+- Base moved from upstream `main` (3.2.0-rc.0) to the **Immich v3.2.0** stable release; the branch now follows upstream release tags instead of `main`.
 - CI: APKs built on every push and pull request, releases published from `homelink-v*` tags (universal, arm64-v8a, armeabi-v7a).
 - Repository: issue templates (device report, bug), fork CONTRIBUTING, this changelog.
 
