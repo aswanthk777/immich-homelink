@@ -27,8 +27,8 @@ in [HOME_LINK.md](HOME_LINK.md#code-map). Almost everything is under `mobile/and
 - Upstream Immich declines pull requests generated with an LLM, and this fork has no better way to
   review code than they do. If you used an AI assistant, say so in the PR and be able to explain every
   line; PRs whose author cannot answer questions about them will be closed.
-- Releases are tagged `homelink-vX.Y.Z` on the `home-link` branch. The branch is periodically
-  rebased on upstream `main`; do not base work on `main` here, it is a mirror.
+- Releases are tagged `homelink-vX.Y.Z` on the `home-link` branch. The branch is rebased on
+  each upstream stable release tag (currently `v3.2.0`); do not base work on `main` here, it is a mirror.
 
 ## Scope
 

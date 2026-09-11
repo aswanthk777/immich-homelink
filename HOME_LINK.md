@@ -334,7 +334,7 @@ These cost a full afternoon on a OnePlus running Android 16; they apply to most 
 
 | Symptom | Look at |
 |---|---|
-| *Server update is available* although the server is current | Fixed in v0.1.2. Home Link builds come from upstream `main`, whose app version is a pre-release (e.g. 3.2.0-rc.0) ahead of every released server, and stock Immich flags any older server. A pre-release app now only reports what the server's own latest-release check says. |
+| *Server update is available* although the server is current | Fixed in v0.1.2 (releases up to v0.1.3 were built from upstream `main`, whose app version was a pre-release, 3.2.0-rc.0, ahead of every released server, and stock Immich flags any older server; since the v3.2.0 rebase the app version matches a stable release). A pre-release app now only reports what the server's own latest-release check says. |
 | Card says *Home not reachable through the tunnel* | Handshake OK but the server does not answer: `AllowedIPs` on the phone must include the LAN; the WireGuard box must forward + NAT to the LAN; the *Home server URL* must be the LAN address. |
 | *VPN permission not granted* | Switch *Use Home Link* off and on to get the consent dialog again. Some vendors also require enabling "Always-on"-style permissions in their VPN settings page. |
 | Tunnel up but no handshake | Router port-forward, `PUBLIC` endpoint, or clock skew. `wg show` on the server shows the last handshake per peer. |
