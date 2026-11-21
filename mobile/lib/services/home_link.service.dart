@@ -18,7 +18,9 @@ class HomeLinkService {
   bool get supported => Platform.isAndroid;
 
   Future<HomeLinkStatus?> getStatus() async {
-    if (!supported) return null;
+    if (!supported) {
+      return null;
+    }
     try {
       return await _api.getStatus();
     } catch (e) {
@@ -28,7 +30,9 @@ class HomeLinkService {
   }
 
   Future<HomeLinkConfig?> getConfig() async {
-    if (!supported) return null;
+    if (!supported) {
+      return null;
+    }
     try {
       return await _api.getConfig();
     } catch (e) {
@@ -43,7 +47,9 @@ class HomeLinkService {
   /// Make sure the server is reachable before talking to it. Never throws; returns null when
   /// Home Link is unavailable so callers just carry on with the plain network.
   Future<HomeLinkStatus?> ensureLink({String holder = 'app', Duration timeout = const Duration(seconds: 20)}) async {
-    if (!supported) return null;
+    if (!supported) {
+      return null;
+    }
     try {
       final status = await _api.ensureLink(holder, timeout.inMilliseconds);
       if (status.state != HomeLinkState.disabled) {
@@ -57,7 +63,9 @@ class HomeLinkService {
   }
 
   Future<void> releaseLink([String holder = 'app']) async {
-    if (!supported) return;
+    if (!supported) {
+      return;
+    }
     try {
       await _api.releaseLink(holder);
     } catch (_) {}

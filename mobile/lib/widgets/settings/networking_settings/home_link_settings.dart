@@ -90,7 +90,9 @@ class HomeLinkSettings extends HookConsumerWidget {
     // First enable: needs config + home URL + VPN consent.
     useValueChanged<bool, void>(enabled.value, (_, _) async {
       final c = config.value;
-      if (c == null || c.enabled == enabled.value) return;
+      if (c == null || c.enabled == enabled.value) {
+        return;
+      }
       if (enabled.value) {
         if ((c.wireguardConfig ?? '').isEmpty || (c.homeUrl ?? '').isEmpty) {
           enabled.value = false;
@@ -113,8 +115,9 @@ class HomeLinkSettings extends HookConsumerWidget {
       await save(enabled: enabled.value);
     });
     useValueChanged<bool, void>(lanDirect.value, (_, _) {
-      if (config.value != null && config.value!.lanDirect != lanDirect.value)
+      if (config.value != null && config.value!.lanDirect != lanDirect.value) {
         unawaited(save(lanDirect: lanDirect.value));
+      }
     });
     useValueChanged<bool, void>(keepUp.value, (_, _) {
       if (config.value != null && config.value!.keepUpWhenAway != keepUp.value) {
@@ -149,7 +152,9 @@ class HomeLinkSettings extends HookConsumerWidget {
           ],
         ),
       );
-      if (text != null) await save(wireguardConfig: text.trim());
+      if (text != null) {
+        await save(wireguardConfig: text.trim());
+      }
     }
 
     Future<void> scanConfig() async {
@@ -161,7 +166,9 @@ class HomeLinkSettings extends HookConsumerWidget {
           context.showSnackBar(const SnackBar(content: Text('That QR is not a WireGuard config')));
         }
       } catch (e) {
-        if (context.mounted) context.showSnackBar(SnackBar(content: Text('Scan failed: $e')));
+        if (context.mounted) {
+          context.showSnackBar(SnackBar(content: Text('Scan failed: $e')));
+        }
       }
     }
 
@@ -183,12 +190,16 @@ class HomeLinkSettings extends HookConsumerWidget {
           ],
         ),
       );
-      if (url != null) await save(homeUrl: url.trim());
+      if (url != null) {
+        await save(homeUrl: url.trim());
+      }
     }
 
     Future<void> newKeyPair() async {
       final pair = (await service.generateKeyPair()).split('\n');
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        return;
+      }
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -231,7 +242,7 @@ class HomeLinkSettings extends HookConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SettingGroupTitle(title: 'Home Link', icon: Icons.vpn_lock_outlined),
+        const SettingGroupTitle(title: 'Home Link', icon: Icons.vpn_lock_outlined),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Card(
@@ -338,7 +349,9 @@ class HomeLinkSettings extends HookConsumerWidget {
                   variant: .ghost,
                   onPressed: () async {
                     final ms = await service.probeHome();
-                    if (!context.mounted) return;
+                    if (!context.mounted) {
+                      return;
+                    }
                     context.showSnackBar(
                       SnackBar(content: Text(ms < 0 ? 'Home server did not answer' : 'Home server answered in $ms ms')),
                     );
@@ -385,10 +398,16 @@ class HomeLinkSettings extends HookConsumerWidget {
   };
 
   static String _subtitle(HomeLinkStatus? s) {
-    if (s == null) return '…';
+    if (s == null) {
+      return '…';
+    }
     final parts = <String>[];
-    if (s.detail != null) parts.add(s.detail!);
-    if (s.state == HomeLinkState.lan && s.homeNetworkName != null) parts.add('via ${s.homeNetworkName}');
+    if (s.detail != null) {
+      parts.add(s.detail!);
+    }
+    if (s.state == HomeLinkState.lan && s.homeNetworkName != null) {
+      parts.add('via ${s.homeNetworkName}');
+    }
     if (s.tunnelUp) {
       final hs = s.lastHandshakeMillis;
       if (hs != null && hs > 0) {
@@ -399,15 +418,25 @@ class HomeLinkSettings extends HookConsumerWidget {
       }
       parts.add('↓${_bytes(s.rxBytes)} ↑${_bytes(s.txBytes)}');
     }
-    if (s.state == HomeLinkState.idle) parts.add('tunnel down, nothing needs it');
-    if (s.holds.isNotEmpty) parts.add('held by ${s.holds.join(', ')}');
+    if (s.state == HomeLinkState.idle) {
+      parts.add('tunnel down, nothing needs it');
+    }
+    if (s.holds.isNotEmpty) {
+      parts.add('held by ${s.holds.join(', ')}');
+    }
     return parts.isEmpty ? ' ' : parts.join(' · ');
   }
 
   static String _bytes(int? b) {
-    if (b == null) return '–';
-    if (b < 1024) return '$b B';
-    if (b < 1024 * 1024) return '${(b / 1024).toStringAsFixed(0)} KB';
+    if (b == null) {
+      return '–';
+    }
+    if (b < 1024) {
+      return '$b B';
+    }
+    if (b < 1024 * 1024) {
+      return '${(b / 1024).toStringAsFixed(0)} KB';
+    }
     return '${(b / 1024 / 1024).toStringAsFixed(1)} MB';
   }
 }
@@ -463,7 +492,9 @@ class _BatteryExemptionTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final status = ref.watch(batteryOptimizationProvider).valueOrNull;
-    if (status == null || status == ph.PermissionStatus.granted) return const SizedBox.shrink();
+    if (status == null || status == ph.PermissionStatus.granted) {
+      return const SizedBox.shrink();
+    }
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
       leading: Icon(Icons.battery_alert_outlined, color: context.colorScheme.error),
