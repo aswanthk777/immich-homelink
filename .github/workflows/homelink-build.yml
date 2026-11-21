@@ -42,7 +42,11 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
-      - uses: android-actions/setup-android@v3
+      # As upstream: v3 installed the legacy `tools` package by default, which the SDK repository no
+      # longer has. Gradle installs the platforms/build-tools it needs (licenses are accepted here).
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: ''
 
       - name: Restore Gradle cache
         uses: actions/cache@v4
