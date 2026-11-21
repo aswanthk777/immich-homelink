@@ -29,10 +29,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up mise (Flutter, Dart, Java, openapi-generator)
-        uses: immich-app/devtools/actions/use-mise@06a9ef925332c91be647d6256642b86b398592c8 # use-mise-action-v3.2.1
+      # Same action and mise version as upstream's build-mobile.yml since v3.4.1; mobile/mise.lock
+      # (precompiled Ruby, Rust targets) is written for it.
+      - name: Set up mise (Flutter, Dart, Java, Rust, openapi-generator)
+        uses: immich-app/devtools/actions/use-mise@caac7f7e4298458a14238959504f411fc6cc7f06 # use-mise-action-v3.2.3
         with:
-          working-directory: ./mobile
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          working_directory: ./mobile
 
       - uses: actions/setup-java@v4
         with:
@@ -67,9 +70,10 @@ jobs:
           ALIAS: ${{ secrets.ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        # mise exec: use-mise v3.2.3 no longer exports tool paths to later steps.
         run: |
-          flutter build apk --release
-          flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64
+          mise exec -- flutter build apk --release
+          mise exec -- flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64
           cd build/app/outputs/flutter-apk
           mv app-release.apk immich-homelink-universal.apk
           mv app-arm64-v8a-release.apk immich-homelink-arm64-v8a.apk
