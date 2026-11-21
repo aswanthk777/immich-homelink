@@ -156,6 +156,8 @@ class BackgroundWorkerApiImpl(context: Context) : BackgroundWorkerFgHostApi {
         .enqueueUniqueWork(RETRY_WORKER_NAME, ExistingWorkPolicy.KEEP, work)
 
       Log.i(TAG, "Enqueued background worker to run once connected")
+    }
+
     /**
      * Sits in JobScheduler until the phone is on a charger (JobScheduler's notion survives a
      * charge limit), then starts the upload worker. Armed whenever an upload was skipped or cut
