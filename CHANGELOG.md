@@ -2,6 +2,15 @@
 
 All notable changes to the Home Link fork. Upstream Immich changes are not listed; the base is noted per release.
 
+## v0.3.0 — unreleased
+- Base moved to the **Immich v3.4.2** stable release (app version 3.4.2). Built with Flutter 3.47.2.
+- Upstream 3.3 added a background worker that retries the backup once the network is back. It runs through the same
+  Home Link path as every other backup (home network or tunnel first, charger check by cable state), and does not use
+  Android's charging flag as a scheduling constraint, so it cannot start a backup on battery or outside the tunnel.
+- Fixed: right after unplugging, Android can still report "charging" for a moment. The charge trigger then started a
+  backup that saw no charger and re-armed the trigger at once, looping until Android stopped scheduling the app's
+  background work. The trigger now checks the cable itself and waits for a real plug-in.
+
 ## v0.2.0 — 2026-09-12
 - Base moved from upstream `main` (3.2.0-rc.0) to the **Immich v3.2.0** stable release (app version 3.2.0); the branch now follows upstream release tags instead of `main`. Tested on a OnePlus (Android 16) against a v3.2.0 server.
 - CI: APKs built on every push and pull request, releases published from `homelink-v*` tags (universal, arm64-v8a, armeabi-v7a).
