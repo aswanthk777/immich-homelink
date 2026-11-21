@@ -10,6 +10,14 @@ class ChargeTriggerWorker(context: Context, params: WorkerParameters) : Worker(c
   private val ctx: Context = context.applicationContext
 
   override fun doWork(): Result {
+    // The CHARGING constraint follows the battery status, the upload worker checks the plug. When they
+    // disagree (status still "charging" with no charger plugged, e.g. right after unplugging), starting the
+    // worker makes it re-arm this trigger at once and the two loop until JobScheduler's quota runs out.
+    // Retry instead: the trigger stays armed for the next real plug-in and a lasting mismatch backs off.
+    if (!BackgroundWorkerApiImpl.isPluggedIn(ctx)) {
+      Log.i("ChargeTrigger", "Charging reported but no charger is plugged in, waiting")
+      return Result.retry()
+    }
     Log.i("ChargeTrigger", "Charger connected, starting background worker")
     BackgroundWorkerApiImpl.enqueueBackgroundWorker(ctx)
     return Result.success()
